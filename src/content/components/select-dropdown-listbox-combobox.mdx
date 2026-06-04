@@ -1,0 +1,185 @@
+---
+title: Select vs Dropdown vs Listbox vs Combobox
+section: Components
+order: 2
+description: "These controls look alike, but they solve different jobs: choosing, commanding, browsing, and searching."
+---
+
+import { SelectionPatternExamples } from "#/components/docs/selection-pattern-examples.tsx"
+
+These patterns are often collapsed into "a dropdown", but they are not the
+same control. Pick the pattern by the user's job, not by the visual shape.
+
+## Quick distinction
+
+| Pattern      | Primary job                         | Value submitted? | Common trigger text       | Best for                                 |
+| ------------ | ----------------------------------- | ---------------- | ------------------------- | ---------------------------------------- |
+| **Select**   | Choose one value from known options | Yes              | Current selected value    | Forms, settings, filters                 |
+| **Dropdown** | Reveal actions or extra UI          | Usually no       | Action label or icon      | Menus, overflow actions, account menus   |
+| **Listbox**  | Browse and choose from a list       | Yes              | Usually always visible    | Rich option lists, multi-select pickers  |
+| **Combobox** | Type to search, filter, or create   | Yes              | Input text or placeholder | Long lists, autocomplete, entity pickers |
+
+<Callout variant="tip" title="Shortcut">
+  If the user is choosing a value, start with **select**. If the user is taking
+  an action, use a **dropdown menu**. If the list is too long to scan, use a
+  **combobox**.
+</Callout>
+
+## UI examples
+
+<SelectionPatternExamples />
+
+## Select
+
+A select is a form field. It stores a value and usually submits with the rest
+of the form.
+
+Use a select when:
+
+- the option set is small or moderate
+- options are stable and known ahead of time
+- the user only needs to choose, not search
+- native mobile behavior would be helpful
+
+```tsx
+<label htmlFor="density">Density</label>
+<select id="density" name="density" defaultValue="comfortable">
+  <option value="compact">Compact</option>
+  <option value="comfortable">Comfortable</option>
+  <option value="spacious">Spacious</option>
+</select>
+```
+
+Avoid using a select for commands like `Delete`, `Duplicate`, or `Export`.
+Those are actions, not values.
+
+## Dropdown
+
+"Dropdown" is a visual behavior, not a specific semantic control. In product
+UI it usually means a button that opens a menu, popover, or disclosure panel.
+
+Use a dropdown menu when:
+
+- each item performs an action
+- the trigger is an overflow button, avatar, toolbar item, or menu button
+- selecting an item should not persist as the trigger's value
+- the menu is transient and closes after a command
+
+```tsx
+function ActionsMenu({ isOpen }: { isOpen: boolean }) {
+  return (
+    <>
+      <button type="button" aria-haspopup="menu" aria-expanded={isOpen}>
+        More actions
+      </button>
+
+      {isOpen ? (
+        <div role="menu">
+          <button role="menuitem" type="button">
+            Duplicate
+          </button>
+          <button role="menuitem" type="button">
+            Archive
+          </button>
+          <button role="menuitem" type="button">
+            Delete
+          </button>
+        </div>
+      ) : null}
+    </>
+  )
+}
+```
+
+<Callout variant="warning" title="Don't use menu roles for selection fields">
+  `role="menu"` is for application commands. For choosing a value, use a native
+  `select`, a listbox, or a combobox instead.
+</Callout>
+
+## Listbox
+
+A listbox is a selectable list. It can be always visible or opened from a
+button in a custom select-like component.
+
+Use a listbox when:
+
+- options need custom layout, icons, descriptions, or grouping
+- the user may need multi-select
+- scanning the available options is more important than typing
+- native select styling or behavior is too limited
+
+```tsx
+<div role="listbox" aria-label="Assignee">
+  <div role="option" aria-selected="true">
+    Riley
+  </div>
+  <div role="option" aria-selected="false">
+    Sam
+  </div>
+  <div role="option" aria-selected="false">
+    Taylor
+  </div>
+</div>
+```
+
+Listboxes need strong keyboard support: arrow keys move through options,
+`Enter` or `Space` selects, and focus stays understandable while the active
+option changes.
+
+## Combobox
+
+A combobox combines an input with a list of suggestions. It is for finding a
+value, not merely opening a short list.
+
+Use a combobox when:
+
+- the option set is long, remote, or hard to scan
+- users know what they want before seeing every option
+- filtering saves time
+- free-form creation is allowed, like tags or invite emails
+
+```tsx
+<label htmlFor="customer">Customer</label>
+<input
+  aria-autocomplete="list"
+  aria-controls="customer-options"
+  aria-expanded={isOpen}
+  id="customer"
+  role="combobox"
+  type="text"
+/>
+
+<ul id="customer-options" role="listbox">
+  <li role="option">Acme Co.</li>
+  <li role="option">Globex</li>
+</ul>
+```
+
+Comboboxes are easy to make badly. Define empty, loading, no-results, selected,
+and invalid states before building the happy path.
+
+## Decision guide
+
+| Question                                   | Use this       |
+| ------------------------------------------ | -------------- |
+| "Which saved value should this field use?" | Select         |
+| "Which command should run now?"            | Dropdown menu  |
+| "Which visible options are selected?"      | Listbox        |
+| "Can I type to find the option?"           | Combobox       |
+| "Do I need mobile-native behavior?"        | Native select  |
+| "Do options need rich custom rendering?"   | Listbox/select |
+
+## Common mistakes
+
+- Calling every popover a dropdown.
+- Using a menu for persistent field values.
+- Building a custom select when a native `select` would be clearer.
+- Using a combobox for a list of five obvious options.
+- Hiding the current value behind a vague trigger like `Choose...`.
+- Skipping keyboard behavior because the component works with a mouse.
+
+## Rule of thumb
+
+A **select** answers "what value?" A **dropdown menu** answers "what action?"
+A **listbox** answers "which visible option?" A **combobox** answers "what can
+I find by typing?"
