@@ -87,12 +87,17 @@ export function Callout({
   )
 }
 
-// Wraps Shiki's `<pre>` with a hover-reveal copy button. The code text is read
-// straight from the rendered DOM so we don't have to thread the raw source
-// through the MDX pipeline.
-function CodeBlock({ children, ...props }: ComponentPropsWithoutRef<"pre">) {
+// Wraps Shiki's `<pre>` in a framed block with a language label and a copy
+// button. The code text is read straight from the rendered DOM so we don't
+// have to thread the raw source through the MDX pipeline. `data-language` is
+// set by a Shiki transformer in vite.config.ts.
+function CodeBlock({
+  children,
+  ...props
+}: ComponentPropsWithoutRef<"pre"> & { "data-language"?: string }) {
   const preRef = useRef<HTMLPreElement>(null)
   const [copied, setCopied] = useState(false)
+  const language = props["data-language"]
 
   function copy() {
     const text = preRef.current?.textContent ?? ""
@@ -103,19 +108,28 @@ function CodeBlock({ children, ...props }: ComponentPropsWithoutRef<"pre">) {
   }
 
   return (
-    <div className="group relative my-6">
-      <button
-        aria-label="Copy code"
-        className="absolute top-2.5 right-2.5 z-10 rounded-md border bg-muted/80 p-1.5 text-muted-foreground opacity-0 backdrop-blur transition-all group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100"
-        onClick={copy}
-        type="button"
-      >
-        {copied ? (
-          <CheckIcon className="size-3.5 text-emerald-500" />
-        ) : (
-          <CopyIcon className="size-3.5" />
-        )}
-      </button>
+    <div className="group my-6 overflow-hidden rounded-lg border border-border">
+      <div className="flex items-center justify-between border-b bg-muted/40 py-1.5 pr-1.5 pl-3.5 text-muted-foreground">
+        <span className="font-mono text-[0.7rem] tracking-wide uppercase">
+          {language ?? "code"}
+        </span>
+        <button
+          aria-label="Copy code"
+          className="flex items-center gap-1 rounded px-1.5 py-1 text-xs transition-colors hover:bg-muted hover:text-foreground"
+          onClick={copy}
+          type="button"
+        >
+          {copied ? (
+            <>
+              <CheckIcon className="size-3.5 text-emerald-500" /> Copied
+            </>
+          ) : (
+            <>
+              <CopyIcon className="size-3.5" /> Copy
+            </>
+          )}
+        </button>
+      </div>
       <pre ref={preRef} {...props}>
         {children}
       </pre>

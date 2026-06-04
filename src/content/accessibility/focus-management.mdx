@@ -1,0 +1,81 @@
+---
+title: Focus Management
+section: Accessibility
+order: 1
+description: Keyboard users navigate by focus. If focus is invisible or lost, the UI is broken for them.
+---
+
+Every interactive element has a focus state, whether you style it or not.
+Keyboard and screen-reader users rely on it the way mouse users rely on the
+cursor. Two rules cover most of the ground: **never hide focus**, and **never
+lose focus**.
+
+## Style :focus-visible, never remove the outline
+
+The single most damaging line in a stylesheet:
+
+```css
+/* ☠️ makes every control unusable by keyboard */
+:focus {
+  outline: none;
+}
+```
+
+If you must replace the default ring, do it on `:focus-visible` so it appears
+for keyboard navigation but not on mouse clicks:
+
+```css
+.button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+```
+
+<Callout variant="warning" title="focus vs focus-visible">
+  `:focus` fires on click too, which is why people remove it (the ring looks
+  noisy on mouse clicks). `:focus-visible` solves the actual problem — keep the
+  ring, scope it to keyboard.
+</Callout>
+
+## Move focus deliberately
+
+When you open a dialog, focus should move *into* it; when it closes, focus
+should return to whatever opened it. Otherwise keyboard users are dropped at
+the top of the page.
+
+```tsx
+function Dialog({ open, onClose }) {
+  const triggerRef = useRef<HTMLElement>(document.activeElement)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (open) {
+      panelRef.current?.focus() // move in
+    } else {
+      triggerRef.current?.focus() // restore on close
+    }
+  }, [open])
+}
+```
+
+Good primitives (Base UI, Radix) do this for you — but know what they're doing
+so you notice when something rolls its own.
+
+## Don't trap focus by accident
+
+A focus *trap* inside a modal is correct — tabbing should cycle within it. A
+focus trap **anywhere else** is a bug: a `keydown` handler that
+`preventDefault()`s Tab, or an element with a positive `tabindex` that reorders
+the natural flow.
+
+| Pattern                 | Verdict                                  |
+| ----------------------- | ---------------------------------------- |
+| `tabindex="0"`          | Fine — makes a custom element focusable  |
+| `tabindex="-1"`         | Fine — focusable by script, not by Tab   |
+| `tabindex="5"`          | Avoid — fights the DOM order             |
+
+## Test it the easy way
+
+Put the mouse down. Tab through the whole screen. If you ever can't see where
+you are, or focus jumps somewhere unexpected, that's the bug — fix it before
+shipping.

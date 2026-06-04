@@ -5,12 +5,24 @@ import viteReact from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 import mdx from "@mdx-js/rollup"
 import rehypeShiki from "@shikijs/rehype"
+import type { ShikiTransformer } from "shiki"
 import remarkFrontmatter from "remark-frontmatter"
 import remarkGfm from "remark-gfm"
 import remarkMdxFrontmatter from "remark-mdx-frontmatter"
 
 import { gitDates } from "./src/lib/mdx/git-dates-plugin.ts"
 import { remarkTocSlugs } from "./src/lib/mdx/remark-toc-slugs.ts"
+
+// Surface the fence language on the <pre> so the UI can label code blocks.
+const dataLanguageTransformer: ShikiTransformer = {
+  name: "data-language",
+  pre(node) {
+    const lang = this.options.lang
+    if (lang && lang !== "text" && lang !== "plaintext") {
+      node.properties["data-language"] = lang
+    }
+  },
+}
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
@@ -34,6 +46,7 @@ const config = defineConfig({
             {
               themes: { dark: "github-dark", light: "github-light" },
               defaultColor: false,
+              transformers: [dataLanguageTransformer],
             },
           ],
         ],

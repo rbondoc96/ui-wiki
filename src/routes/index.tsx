@@ -1,9 +1,27 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { ArrowRightIcon, SparkleIcon } from "@phosphor-icons/react"
 
+import type { NavSection } from "#/lib/docs.ts"
 import { navTree } from "#/lib/docs.ts"
 
 export const Route = createFileRoute("/")({ component: Home })
+
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+})
+
+function latestUpdate(section: NavSection): string | undefined {
+  const dates = section.items
+    .map((doc) => doc.updated)
+    .filter((d): d is string => Boolean(d))
+  if (dates.length === 0) {
+    return undefined
+  }
+  const newest = dates.reduce((a, b) => (a > b ? a : b))
+  return dateFormatter.format(new Date(newest))
+}
 
 function Home() {
   return (
@@ -37,9 +55,16 @@ function Home() {
             key={section.title}
             className="rounded-xl border border-border p-6"
           >
-            <h2 className="font-heading text-lg font-semibold">
-              {section.title}
-            </h2>
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="font-heading text-lg font-semibold">
+                {section.title}
+              </h2>
+              {latestUpdate(section) ? (
+                <span className="text-xs text-muted-foreground">
+                  Updated {latestUpdate(section)}
+                </span>
+              ) : null}
+            </div>
             <ul className="mt-3 flex flex-col gap-1">
               {section.items.map((doc) => (
                 <li key={doc.slug}>

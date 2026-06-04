@@ -1,4 +1,9 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
+import {
+  HeadContent,
+  Link,
+  Scripts,
+  createRootRoute,
+} from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
@@ -29,6 +34,20 @@ export const Route = createRootRoute({
       <p className="mt-2 text-sm text-muted-foreground">
         The page you’re looking for doesn’t exist.
       </p>
+      <div className="mt-6 flex items-center justify-center gap-3 text-sm">
+        <Link
+          to="/"
+          className="rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Go home
+        </Link>
+        <Link
+          to="/docs"
+          className="rounded-md border px-4 py-2 font-medium transition-colors hover:bg-accent"
+        >
+          Browse the docs
+        </Link>
+      </div>
     </main>
   ),
   shellComponent: RootDocument,

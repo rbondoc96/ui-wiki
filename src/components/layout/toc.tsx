@@ -39,17 +39,17 @@ export function TableOfContents({ toc }: { toc: Array<TocEntry> }) {
       <p className="mb-3 text-xs font-semibold tracking-wide text-foreground uppercase">
         On this page
       </p>
-      <ul className="flex flex-col gap-1 text-sm">
+      <ul className="flex flex-col border-l border-border text-sm">
         {toc.map((entry) => (
           <li key={entry.id}>
             <a
               href={`#${entry.id}`}
               className={cn(
-                "block py-0.5 transition-colors",
-                entry.depth === 3 && "pl-3",
+                "-ml-px block border-l-2 py-1 transition-colors",
+                entry.depth === 3 ? "pl-6" : "pl-3",
                 activeId === entry.id
-                  ? "font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "border-primary font-medium text-foreground"
+                  : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
               )}
             >
               {entry.title}

@@ -1,0 +1,66 @@
+---
+title: Typography
+section: Foundations
+order: 3
+description: Type is 90% of most interfaces. A small, deliberate scale does the heavy lifting.
+---
+
+Most of what users call "the design" is just text on a background. Getting type
+right — scale, measure, rhythm — makes an interface feel considered before a
+single color or border is added.
+
+## Use a modular scale
+
+Don't pick font sizes ad hoc. Derive them from a base (usually `16px`) times a
+ratio, so sizes relate to each other proportionally.
+
+```ts
+// A ~1.25 (major third) scale, rounded to clean rems.
+export const fontSize = {
+  xs: "0.75rem", //   12px
+  sm: "0.875rem", //  14px
+  base: "1rem", //    16px
+  lg: "1.125rem", //  18px
+  xl: "1.25rem", //   20px
+  "2xl": "1.5rem", // 24px
+  "3xl": "1.875rem", //30px
+  "4xl": "2.25rem", //36px
+} as const
+```
+
+A consistent ratio means any two sizes you combine already look intentional.
+
+## Line length and line height are linked
+
+The two most impactful — and most ignored — properties:
+
+| Property      | Body text target            | Why                                  |
+| ------------- | --------------------------- | ------------------------------------ |
+| Measure       | 45–75 characters per line   | Longer lines lose the reader's place |
+| Line height   | 1.5–1.7 for body            | Room for the eye to track lines      |
+| Heading L.H.  | 1.1–1.25                    | Tight, so titles read as one unit    |
+
+Note the inverse relationship: **bigger text wants tighter line height**;
+small text wants looser. A 36px heading at 1.6 looks like a list of words.
+
+<Callout variant="tip" title="Cap your measure with ch">
+  `max-width: 70ch` caps a paragraph at roughly 70 characters regardless of
+  font — the cleanest way to keep a readable measure.
+</Callout>
+
+## Establish hierarchy with weight and size, not many fonts
+
+Two type families is plenty — often one. Build hierarchy from **size, weight,
+and color**, not from a zoo of typefaces.
+
+```css
+.title    { font-size: var(--text-3xl); font-weight: 600; }
+.subtitle { font-size: var(--text-lg);  color: var(--muted-foreground); }
+.body     { font-size: var(--text-base); line-height: 1.6; }
+```
+
+## Where to go next
+
+Type sits on the same token foundation as everything else — see
+[Spacing Scale](/docs/foundations/spacing) for the vertical rhythm that pairs
+with line height.

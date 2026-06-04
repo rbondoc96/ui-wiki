@@ -1,0 +1,58 @@
+---
+title: Empty States
+section: Patterns
+order: 1
+description: The first thing a user sees is often nothing. Design the nothing.
+---
+
+Empty states are the most-seen and least-designed screens in an app. A new user
+hits them on day one; they're the first impression of every feature. A blank
+area with "No data" wastes that moment.
+
+## There are three different "empties"
+
+They look similar but need different treatment:
+
+| Type        | Cause                          | Goal                          |
+| ----------- | ------------------------------ | ----------------------------- |
+| First use   | Nothing created yet            | Teach + prompt the first action |
+| Cleared     | User finished / deleted all    | Affirm, offer what's next      |
+| No results  | Search/filter matched nothing  | Explain why, offer to reset   |
+
+Treating "no search results" like "first use" produces nonsense — don't show a
+"Create your first invoice" CTA when the user just searched for "xyz".
+
+## A good first-use state has three parts
+
+```tsx
+<EmptyState
+  // 1. What this is / why it's empty
+  title="No projects yet"
+  description="Projects group your tasks and files in one place."
+  // 2. The single most useful next action
+  action={<Button>Create a project</Button>}
+  // 3. Optional: a secondary escape hatch
+  secondary={<a href="/docs">Learn how projects work</a>}
+/>
+```
+
+Lead with the action. The whole point of the empty state is to get the user out
+of it.
+
+<Callout variant="tip" title="Skip the giant illustration">
+  A decorative illustration is fine, but it shouldn't push the actual CTA below
+  the fold. Clarity and the action come first; delight second.
+</Callout>
+
+## No-results needs an exit
+
+When a filter or search empties the view, always give a way back:
+
+- Restate what was searched: *No results for "xyz".*
+- Offer a one-click **Clear filters** / **Reset**.
+- Never leave the user staring at a dead end with their query still applied.
+
+## Where to go next
+
+The action in an empty state is usually a button — see
+[Button Anatomy](/docs/components/button-anatomy) for getting that CTA right.
