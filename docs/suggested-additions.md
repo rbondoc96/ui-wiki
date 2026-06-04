@@ -152,6 +152,9 @@ web-centric wikis ignore it entirely.
 > page, since the concern splits cleanly three ways:
 >
 > - `index.mdx` — Overview: table vs. list vs. cards decision rubric.
+> - `tables-vs-lists.mdx` — objective treatment of "stacked lists beat tables":
+>   the per-reading-task decision, semantic `<table>` vs. div-soup, and the
+>   WCAG Reflow / 1.3.1 facts behind the small-screen argument.
 > - `data-tables.mdx` — anatomy, alignment, column sizing, density, sorting,
 >   sticky headers, selection.
 > - `long-lists-virtualization.mdx` — paging (pagination/load-more/infinite) vs.

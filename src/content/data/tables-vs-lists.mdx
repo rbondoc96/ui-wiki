@@ -1,0 +1,155 @@
+---
+title: Tables vs. Lists
+section: Data
+order: 2
+description: '"Stacked lists beat tables" is half-right. The honest answer turns on one question — is the user comparing records, or reading each on its own? — plus what the HTML actually means.'
+---
+
+A recurring claim is that stacked lists are simply better than tables —
+especially on small screens — and that you should prefer `<div>` / `<ul>`
+layouts over `<table>`. Like most "X is better than Y" UI rules, it's right in
+the cases its author has in mind and wrong outside them. Two questions hide
+inside it, and they have different answers: which **visual structure** fits the
+data, and which **HTML** you should emit. Keep them apart.
+
+## The one question that decides structure
+
+A table and a stacked list optimize for opposite reading tasks.
+
+- A **table** makes values *comparable*: aligned columns let the eye run down a
+  single attribute across many records and answer "which is largest / latest /
+  cheapest?" without reading any row in full.
+- A **stacked list** makes each record *self-contained*: one item is read as a
+  unit, top to bottom — the way you read an inbox, a feed, or search results.
+
+So the deciding question isn't screen size or taste. It's: **will the user
+compare records across a shared attribute, or read each on its own?** If
+comparison is a real task, that's precisely what a table is *for*, and
+flattening it into cards removes its reason to exist. If each record is read on
+its own terms, a table is just ceremony and a list is clearer.
+
+| Signal                                           | Leans table | Leans list |
+| ------------------------------------------------ | :---------: | :--------: |
+| Users compare a field across rows (sort, scan)   |      ✓      |            |
+| Many records sharing the *same* attributes       |      ✓      |            |
+| Numeric, aligned data, running totals            |      ✓      |            |
+| Each record read as a standalone unit            |             |     ✓      |
+| Few attributes per record, or heterogeneous ones |             |     ✓      |
+| Primarily browsed/tapped, not analyzed           |             |     ✓      |
+
+This is the same fork the [Overview](/docs/data) opens with, viewed up close: the
+shape follows the task, not a blanket preference.
+
+## The HTML is a separate decision — and it's about meaning, not looks
+
+"Don't use tables" conflates two unrelated things: tables for *layout* (long
+settled — don't) and the `<table>` element for *tabular data* (often exactly
+right). The HTML standard is explicit on both counts — `<table>` represents data
+with two dimensions, and it must not be used purely as a layout device.
+
+For genuinely tabular data, a real `<table>` with `<th scope>` carries
+*relationships* that a `<div>` or list stack cannot:
+
+- Screen readers expose a dedicated **table navigation mode** — move by row or
+  column and hear the relevant header for the current cell. NVDA, JAWS, and
+  VoiceOver all depend on real table semantics for this.
+- `<th scope="col|row">` programmatically ties each data cell to its headers, so
+  a value is announced as "Total, Acme Co. — $1,240.00," not a bare number in
+  space.
+- That association *is* [WCAG 1.3.1 Info and
+  Relationships](https://www.w3.org/WAI/WCAG21/Understanding/info-and-relationships.html):
+  structure conveyed visually (rows, columns, headers) must also be available
+  programmatically.
+
+Rebuilding that grid from `<div>`s discards all of it — unless you re-add ARIA
+grid roles (`role="table/row/columnheader/cell"`) by hand, which is more work
+and more fragile than the element built for the job. The real anti-pattern isn't
+"tables"; it's **div-soup that looks like a table but tells assistive tech
+nothing**.
+
+<DoDont>
+  <Do title="Use a semantic <table> for tabular data">
+    `<table>` + `<th scope>` gives screen-reader users row/column navigation and
+    header-to-cell association for free, and satisfies WCAG 1.3.1 by default.
+  </Do>
+  <Dont title="Fake a table out of <div> rows for the look">
+    Without ARIA grid roles it reads to assistive tech as a flat, unlabelled
+    blob; *with* them you've just rebuilt `<table>` the hard way. Either way
+    you've spent effort to lose ground.
+  </Dont>
+</DoDont>
+
+The mirror image holds too: a stacked list of records *is* a list — mark it up
+as `<ul>` / `<li>` (or with list roles), not a fake table. Matching the element
+to the meaning is the whole game.
+
+## The small-screen argument, examined
+
+The strongest form of the claim is about narrow viewports, and this is where the
+nuance matters most.
+
+First the standards picture, because it's often misstated. [WCAG 1.4.10
+Reflow](https://www.w3.org/WAI/WCAG21/Understanding/reflow.html) asks that
+content reflow to a 320px-wide viewport without two-dimensional scrolling — *but
+it explicitly exempts content that needs a 2D layout for its meaning, and names
+data tables as an example.* A wide table that scrolls horizontally on a phone is
+therefore conformant, not a failure. "Tables break accessibility on mobile" is
+not accurate.
+
+But *conformant* isn't *good*. Horizontal scroll has real UX costs: off-screen
+columns are easy to miss, and you can't compare a column against one that's
+scrolled out of view — which undercuts the table's core value anyway. So on
+narrow screens, restacking a table into per-record cards often genuinely reads
+better.
+
+The catch is what stacking *costs*. It trades cross-column comparison for
+per-row readability:
+
+- If the user's task on mobile is still "compare these," cards remove the very
+  thing they need — **column priority** (hide secondary columns) or horizontal
+  scroll preserve it.
+- If the task is "read this one record," cards win outright.
+
+So the accurate version of the small-screen claim is conditional, not absolute:
+
+> On narrow screens, stacked cards beat a squeezed table **when per-record
+> reading dominates** — common, but not universal. When comparison is the task,
+> keep the columns (priority or scroll) instead.
+
+<Callout variant="info" title="It's per reading-task, not a global rule">
+  The same data can be a `<table>` on desktop and cards on a phone — that's a
+  layout choice, made per width, not a verdict on the element. See <a
+  href="/docs/data/responsive-tables">Responsive Tables</a> for the mechanics and
+  a side-by-side of squeezed-table vs. restacked-cards. Locking one
+  markup-and-layout to every width is what causes trouble — in either direction.
+</Callout>
+
+## Where each genuinely wins
+
+**Stacked lists win** for:
+
+- Feeds, inboxes, search results, notifications — each item read on its own.
+- Records with few attributes, or attributes that vary between items.
+- Touch-first browsing and narrow viewports where comparison isn't the job.
+- Content with a strong primary element (a title, an avatar, an image).
+
+**Tables win** for:
+
+- Dashboards, admin grids, ledgers — dense, uniform, comparable data.
+- Sorting and scanning a column; "which row has the highest X?"
+- Many records sharing the same many attributes; aligned numbers and totals.
+- Spreadsheet-like tasks where the 2D structure *is* the information.
+
+## Bottom line
+
+There's no general winner. "Stacked lists are better than tables" holds for
+single-record reading and many small-screen cases — and it dissolves the moment
+cross-record comparison is the task, which is exactly when a `<table>`, with its
+built-in header associations and screen-reader navigation, earns its place.
+Decide by the **reading task** and the **meaning of the data**, emit the HTML
+that matches that meaning, and let the *layout* (table, scroll, column-priority,
+or cards) adapt per width.
+
+From here: build the table well in [Data Tables](/docs/data/data-tables), and
+make it adapt to small screens in
+[Responsive Tables](/docs/data/responsive-tables).
