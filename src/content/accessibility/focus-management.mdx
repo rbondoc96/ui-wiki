@@ -12,17 +12,19 @@ lose focus**.
 
 ## Style :focus-visible, never remove the outline
 
-The single most damaging line in a stylesheet:
+<DoDont>
+  <Do title="Replace the ring on :focus-visible">
+    Keep a visible focus indicator, scoped to keyboard nav with `:focus-visible`
+    so it doesn't fire on mouse clicks.
+  </Do>
+  <Dont title="outline: none on :focus">
+    The single most damaging line in a stylesheet — it strips the ring for every
+    keyboard user and leaves nothing in its place.
+  </Dont>
+</DoDont>
 
-```css
-/* ☠️ makes every control unusable by keyboard */
-:focus {
-  outline: none;
-}
-```
-
-If you must replace the default ring, do it on `:focus-visible` so it appears
-for keyboard navigation but not on mouse clicks:
+If you replace the default ring, do it on `:focus-visible` so it appears for
+keyboard navigation but not on mouse clicks:
 
 ```css
 .button:focus-visible {

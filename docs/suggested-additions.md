@@ -7,23 +7,23 @@ Each item is tagged **[Feature]** (changes the site/tooling), **[Content]** (a
 new MDX page or section), or **[Both]**. Ranking is by value-per-effort and how
 often you'll actually reach for it.
 
-| #   | Item                                          | Type        | Why it ranks here                                          |
-| --- | --------------------------------------------- | ----------- | ---------------------------------------------------------- |
-| 1   | Live, editable code playground                | Feature     | Force multiplier — every component page gets better        |
-| 2   | Forms & validation patterns                   | Content     | Most-referenced, most-gotten-wrong UX surface              |
-| 3   | Web ↔ React Native tabs                       | Both        | Unique to your stack; nobody else's wiki has it            |
-| 4   | Overlays: dialog / sheet / popover            | Content     | Focus traps, scroll lock, mobile sheets — easy to botch    |
-| 5   | Loading, skeleton & optimistic states         | Content     | The states most devs skip and most users feel              |
-| 6   | Do / Don't comparison component               | Feature     | UI wikis live on side-by-side contrast                     |
-| 7   | Motion & animation guidelines                 | Content     | Durations, easing, reduced-motion, spring on RN            |
-| 8   | Component API table + a11y checklist + status | Feature     | Makes Components section feel like real docs               |
-| 9   | Toasts & notification/feedback patterns       | Content     | Where to surface success/error without stealing focus      |
-| 10  | Responsive layout & container queries         | Content     | The modern answer to "how do I make this adapt"            |
-| 11  | Touch targets & mobile ergonomics             | Content     | Thumb zones, hit slop, 44pt rule — RN-relevant             |
-| 12  | Data tables & long lists                      | Content     | Sorting, pagination, density, virtualization, responsive   |
-| 13  | Theming & design tokens deep dive             | Content     | Ties your Foundations together into a system               |
-| 14  | i18n & RTL                                     | Content     | Cheap to plan for, brutal to retrofit                      |
-| 15  | Site polish (tags, related, changelog, RSS)   | Feature     | Quick wins that improve discovery                          |
+| Done | #   | Item                                          | Type        | Why it ranks here                                          |
+| ---- | --- | --------------------------------------------- | ----------- | ---------------------------------------------------------- |
+| ☐    | 1   | Live, editable code playground                | Feature     | Force multiplier — every component page gets better        |
+| ☐    | 2   | Forms & validation patterns                   | Content     | Most-referenced, most-gotten-wrong UX surface              |
+| ✅   | 3   | Web ↔ React Native tabs                       | Both        | Unique to your stack; nobody else's wiki has it            |
+| ☐    | 4   | Overlays: dialog / sheet / popover            | Content     | Focus traps, scroll lock, mobile sheets — easy to botch    |
+| ✅   | 5   | Loading, skeleton & optimistic states         | Content     | The states most devs skip and most users feel              |
+| ✅   | 6   | Do / Don't comparison component               | Feature     | UI wikis live on side-by-side contrast                     |
+| ☐    | 7   | Motion & animation guidelines                 | Content     | Durations, easing, reduced-motion, spring on RN            |
+| ☐    | 8   | Component API table + a11y checklist + status | Feature     | Makes Components section feel like real docs               |
+| ☐    | 9   | Toasts & notification/feedback patterns       | Content     | Where to surface success/error without stealing focus      |
+| ☐    | 10  | Responsive layout & container queries         | Content     | The modern answer to "how do I make this adapt"            |
+| ☐    | 11  | Touch targets & mobile ergonomics             | Content     | Thumb zones, hit slop, 44pt rule — RN-relevant             |
+| ☐    | 12  | Data tables & long lists                      | Content     | Sorting, pagination, density, virtualization, responsive   |
+| ☐    | 13  | Theming & design tokens deep dive             | Content     | Ties your Foundations together into a system               |
+| ☐    | 14  | i18n & RTL                                     | Content     | Cheap to plan for, brutal to retrofit                      |
+| ☐    | 15  | Site polish (tags, related, changelog, RSS)   | Feature     | Quick wins that improve discovery                          |
 
 ---
 
@@ -48,7 +48,11 @@ errors, multi-step forms, autosave.
 most subtle UX failure modes. Pairs naturally with a React Hook Form / TanStack
 Form example.
 
-## 3. Web ↔ React Native tabs — [Both]
+## 3. Web ↔ React Native tabs — [Both] ✅ Done
+
+> Shipped: `src/components/docs/platform-tabs.tsx` (`<PlatformTabs>` /
+> `<Platform label="…">`), registered globally in `mdx-components.tsx`. First
+> use in `content/patterns/loading-states.mdx`.
 
 A `<PlatformTabs>` MDX component that shows the web pattern and the RN
 equivalent side by side (e.g. `<select>` vs `Picker`/bottom sheet, `:focus` vs
@@ -68,7 +72,11 @@ modals.
 reliably ship broken. High reference value and your `@base-ui/react` primitives
 already give you working examples to document.
 
-## 5. Loading, skeleton & optimistic states — [Content]
+## 5. Loading, skeleton & optimistic states — [Content] ✅ Done
+
+> Shipped: `src/content/patterns/loading-states.mdx` — wait-type rubric,
+> skeleton/flash guidance, TanStack Query optimistic rollback, and a
+> cross-platform tab. Uses the new `<DoDont>` and `<PlatformTabs>` components.
 
 Spinner vs skeleton vs progress, perceived performance, optimistic updates and
 rollback, empty-vs-loading-vs-error distinction (extends your existing
@@ -77,7 +85,19 @@ empty-states page), skeleton matching real layout.
 **Why:** These are the states that get cut under deadline and the ones users
 feel most. Especially relevant alongside TanStack Query.
 
-## 6. Do / Don't comparison component — [Feature]
+## 6. Do / Don't comparison component — [Feature] ✅ Done
+
+> Shipped: `src/components/docs/do-dont.tsx` (`<DoDont>` wrapper with `<Do>` /
+> `<Dont>` cards, optional `title` prop), registered globally in
+> `mdx-components.tsx`. First use in `content/patterns/loading-states.mdx`.
+>
+> Retrofitted into existing pages:
+>
+> - [x] Button Anatomy — one primary vs. two competing primaries
+> - [x] Empty States — acknowledge query vs. reuse first-use CTA
+> - [x] Focus Management — `:focus-visible` vs. `outline: none`
+> - [ ] Select vs Dropdown (skipped — covered by the interactive demo)
+> - [ ] Spacing / Typography / Color foundations
 
 A `<DoDont>` MDX block rendering a green "do" and red "don't" example
 side-by-side (text or live).

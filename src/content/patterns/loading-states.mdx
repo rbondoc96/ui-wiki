@@ -1,0 +1,134 @@
+---
+title: Loading & Optimistic States
+section: Patterns
+order: 2
+description: Loading is a state, not a gap. Skeletons, spinners, and optimistic updates each answer a different question.
+---
+
+Every async view passes through loading, and most designs treat it as dead air —
+a centered spinner, or nothing at all. But the loading state is where perceived
+performance is won or lost. The right treatment depends on what the user is
+waiting for and how long it will take.
+
+## Pick the treatment by wait type
+
+| Treatment       | Best when                                  | Signals                       |
+| --------------- | ------------------------------------------ | ----------------------------- |
+| **Skeleton**    | Layout is known, content is loading        | "Your content is arriving"    |
+| **Spinner**     | Short, indeterminate wait in a small area  | "Working on it"               |
+| **Progress bar**| Determinate, multi-step, or long operation | "X% done, here's how much"    |
+| **Optimistic**  | The action almost always succeeds          | "Done" (before the server agrees) |
+
+The mistake is using one treatment everywhere. A full-page spinner for a
+list that has a known shape throws away the chance to show a skeleton; a skeleton
+for a 200ms toggle is noise.
+
+## Skeletons should match the real layout
+
+A skeleton is a promise about what's coming. If it doesn't match the final
+layout, the content "jumps" on arrival — worse than a plain spinner.
+
+<DoDont>
+  <Do title="Mirror the real structure">
+    Use the same number of rows, the same avatar size, the same column widths
+    as the loaded content. The page should barely move when data lands.
+  </Do>
+  <Dont title="Show a generic gray box">
+    A single pulsing rectangle that bears no resemblance to the result just
+    delays the layout shift — it doesn't prevent it.
+  </Dont>
+</DoDont>
+
+## Don't flash for fast responses
+
+If data returns in 150ms, a spinner that appears and vanishes reads as a glitch.
+Two defenses: a short **delay** before showing the indicator, and a **minimum
+visible duration** once it does show.
+
+```tsx
+// Only show the spinner if loading outlasts ~200ms; once shown, keep it for
+// at least ~400ms so it never strobes.
+const showSpinner = useDelayedFlag(isLoading, { delay: 200, minVisible: 400 })
+```
+
+<Callout variant="tip" title="The three async states, always">
+  Every fetch has <strong>loading</strong>, <strong>error</strong>, and
+  <strong>empty</strong> — not just success. Design all three. The empty case is
+  its own discipline; see <a href="/docs/patterns/empty-states">Empty States</a>.
+</Callout>
+
+## Optimistic updates: act first, reconcile later
+
+When an action nearly always succeeds — toggling a like, checking a todo,
+renaming an item — apply the change to the UI immediately and reconcile when the
+server responds. The interaction feels instant because, to the user, it is.
+
+The contract is that you **must** be able to roll back. Keep the previous value,
+and on failure restore it plus surface the error.
+
+```tsx
+// TanStack Query: snapshot, apply, roll back on error.
+useMutation({
+  mutationFn: toggleTodo,
+  onMutate: async (next) => {
+    await queryClient.cancelQueries({ queryKey: ["todos"] })
+    const previous = queryClient.getQueryData(["todos"])
+    queryClient.setQueryData(["todos"], (old) => applyToggle(old, next))
+    return { previous }
+  },
+  onError: (_err, _next, context) => {
+    queryClient.setQueryData(["todos"], context?.previous) // roll back
+    toast.error("Couldn't save that — try again.")
+  },
+  onSettled: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
+})
+```
+
+<Callout variant="warning" title="Don't be optimistic about everything">
+  Optimistic UI lies to the user for a moment. That's fine for a like, dangerous
+  for a payment or an irreversible delete. Reserve it for high-success,
+  low-stakes actions; for the rest, show real pending state.
+</Callout>
+
+## Cross-platform: the same idea, different primitives
+
+The pattern is identical across web and React Native; only the building blocks
+differ.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Skeletons are usually CSS — a muted background with a shimmer keyframe — and
+    respect `prefers-reduced-motion`. A spinner is an SVG or a CSS animation.
+
+    ```css
+    .skeleton {
+      background: var(--muted);
+      border-radius: 6px;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .skeleton { animation: pulse 1.5s ease-in-out infinite; }
+    }
+    ```
+  </Platform>
+  <Platform label="React Native">
+    No CSS keyframes — drive the shimmer with `Animated`/`Reanimated`, and check
+    `AccessibilityInfo.isReduceMotionEnabled()` to fall back to a static block.
+    Use `ActivityIndicator` for the spinner case.
+
+    ```tsx
+    const reduceMotion = useReducedMotion() // react-native-reanimated
+    return reduceMotion ? (
+      <View style={styles.skeleton} />
+    ) : (
+      <Animated.View style={[styles.skeleton, shimmerStyle]} />
+    )
+    ```
+  </Platform>
+</PlatformTabs>
+
+## Where to go next
+
+The loading state hands off to one of three outcomes: content, an
+[Empty State](/docs/patterns/empty-states), or an error. For the in-flight
+button itself — spinner placement, `aria-busy`, preventing double-submit — see
+[Button Anatomy](/docs/components/button-anatomy).

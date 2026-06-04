@@ -4,6 +4,8 @@ import { useRef, useState } from "react"
 import type { MDXComponents } from "mdx/types"
 import type { ComponentPropsWithoutRef, ReactNode } from "react"
 
+import { Do, DoDont, Dont } from "#/components/docs/do-dont.tsx"
+import { Platform, PlatformTabs } from "#/components/docs/platform-tabs.tsx"
 import { cn } from "#/lib/utils.ts"
 
 function AnchoredHeading({
@@ -143,4 +145,9 @@ export const mdxComponents: MDXComponents = {
   h3: (props) => <AnchoredHeading as="h3" {...props} />,
   pre: CodeBlock,
   Callout,
+  Do,
+  DoDont,
+  Dont,
+  Platform,
+  PlatformTabs,
 }

@@ -24,6 +24,17 @@ have exactly one primary action in view at a time; everything else steps down.
 If two buttons sit side by side and both look primary, the user has to read
 both to decide — the hierarchy has failed.
 
+<DoDont>
+  <Do title="One primary action in view">
+    Make the main action `primary` and step everything else down to `secondary`
+    or `ghost`. The eye lands on the one thing to do next.
+  </Do>
+  <Dont title="Two competing primaries">
+    Styling `Save` and `Cancel` as equals forces the user to stop and read both.
+    Cancel is a `ghost` or `secondary` — never a peer of Save.
+  </Dont>
+</DoDont>
+
 ## Every interactive state
 
 A complete button defines all of these. Skipping any one is what makes a button
