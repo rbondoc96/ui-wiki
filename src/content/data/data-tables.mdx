@@ -1,0 +1,127 @@
+---
+title: Data Tables
+section: Data
+order: 2
+description: A table earns its keep through alignment. Columns, density, sorting, and selection are the details that make rows comparable instead of just stacked.
+---
+
+A table's whole value is that values line up, so the eye can run down a column
+and compare. Everything below is in service of that — and most "ugly table"
+complaints are really alignment, density, or sorting done wrong.
+
+## Anatomy
+
+A data table is a header row of column labels over a body of rows, each row one
+record, each cell one field. Keep that structure semantic — real `<table>`,
+`<thead>`, `<th scope="col">`, `<tbody>` — so screen readers announce "column X,
+row Y" and so sort controls have somewhere to live. Don't rebuild a table out of
+`<div>`s unless you have a reason, and if you do, add the ARIA grid roles back.
+
+## Align by content type
+
+Alignment is not aesthetic; it's what makes a column scannable.
+
+| Content        | Alignment | Why                                              |
+| -------------- | --------- | ------------------------------------------------ |
+| Text, names    | Left      | Reading starts at the left edge                  |
+| Numbers, money | Right     | Ones line up under ones, tens under tens         |
+| Dates          | Left/right| Left if read as labels, right if compared by recency |
+| The header     | Match its column | A right-aligned number wants a right-aligned label |
+
+For numeric columns, also reach for **tabular figures** so digits share a width
+and rows don't wobble.
+
+```css
+/* Every digit the same width — totals and IDs line up perfectly. */
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+```
+
+<DoDont>
+  <Do title="Right-align and tabular-align numbers">
+    A price column where `$9.00` and `$1,240.00` share a right edge lets the user
+    spot the largest value without reading a single digit.
+  </Do>
+  <Dont title="Left-align numbers like text">
+    Left-aligned numbers of different lengths make magnitude impossible to scan —
+    `$1,240.00` looks shorter than `$9.00` at a glance.
+  </Dont>
+</DoDont>
+
+## Column sizing
+
+Let content set widths, then constrain the outliers. Size by the longest
+*expected* value, not the longest *possible* one — one pathological 80-character
+title shouldn't widen a column for every other row. Cap it and truncate with an
+ellipsis, keeping the full value in a `title`/tooltip. Reserve fixed widths for
+columns whose content is bounded: status badges, action buttons, icons.
+
+## Density
+
+Density is a deliberate trade, not a default. Comfortable rows (more vertical
+padding) are easier to tap and read; compact rows fit more on screen for
+power users scanning a ledger. If your audience lives in the table all day, offer
+a density toggle rather than guessing.
+
+<Callout variant="info" title="Min row height still applies">
+  Even "compact" has a floor on touch devices — rows that are also tap targets
+  need ~44px of height. See <a href="/docs/data/responsive-tables">Responsive
+  Tables</a> for the mobile story.
+</Callout>
+
+## Sorting
+
+Make the sortable columns obvious and the current sort unambiguous: an arrow in
+the active column header showing ascending vs. descending, and nothing in the
+others. Pick a sensible **default sort** (most recent, highest priority) so the
+first render is already useful — an unsorted table makes the user do the work.
+
+- **Single-column sort** covers most cases. Click to sort, click again to
+  reverse, and ideally a third state to clear back to the default.
+- **Multi-column sort** (shift-click to add a tiebreaker) is powerful but
+  niche — only build it where users genuinely sort by "status, then date."
+
+Sort the **data**, not the DOM, and keep row identity stable so selection and
+focus survive a re-sort. (Stable keys matter even more once rows are virtualized
+— see [Long Lists & Virtualization](/docs/data/long-lists-virtualization).)
+
+## Sticky headers
+
+Once a table scrolls past a screenful, a column header that scrolls away leaves
+the user staring at unlabeled values. Pin the header row with
+`position: sticky; top: 0` so labels stay in view. If the table scrolls
+horizontally too, consider also pinning the first column (the row's identity)
+so rows never become anonymous.
+
+## Selection
+
+When rows are actionable in bulk, add a leading checkbox column plus a
+select-all checkbox in the header.
+
+- **Define what "select all" means.** Usually it selects the *loaded/filtered*
+  rows, not every row in the database. If the full set is larger, say so and
+  offer an explicit "select all 4,213 matching" affordance.
+- **Use the indeterminate state.** When some but not all rows are selected, the
+  header checkbox should render `indeterminate`, not checked.
+- **Surface a bulk-action bar** when anything is selected — show the count and
+  the available actions, and don't let it cover the rows it acts on.
+
+<DoDont>
+  <Do title="Persist selection across sort and paging">
+    Keep selection keyed by row id so re-sorting or moving to page 2 doesn't
+    silently drop what the user picked.
+  </Do>
+  <Dont title="Tie selection to row position">
+    Selecting "rows 2 and 4" by index means a sort reassigns the selection to
+    different records — a quiet, dangerous bug for bulk delete.
+  </Dont>
+</DoDont>
+
+## Where to go next
+
+A table that's correct on desktop still has two problems left: **too many rows**
+and **too little width**. For the first, see
+[Long Lists & Virtualization](/docs/data/long-lists-virtualization); for the
+second, [Responsive Tables](/docs/data/responsive-tables).

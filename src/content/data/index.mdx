@@ -1,0 +1,57 @@
+---
+title: Overview
+section: Data
+order: 1
+description: Tables, lists, and cards are three answers to one question — "show me many records." Most data-display pain starts with picking the wrong one.
+---
+
+Showing one record is easy. Showing a hundred — sortable, scannable, responsive,
+and fast — is where interfaces fall apart. Almost every dashboard, admin screen,
+and feed is some variation of "render a collection," and the first decision is
+the one most often skipped: **which shape does this collection want to be?**
+
+## Table, list, or cards
+
+They're not interchangeable. Each optimizes for a different reading task.
+
+| Shape     | Use when                                                        | Reading task          |
+| --------- | -------------------------------------------------------------- | --------------------- |
+| **Table** | Records share the same fields and users compare *across* them   | Scan a column, sort   |
+| **List**  | One primary entity per row, read top-to-bottom                  | Sequential, find one  |
+| **Cards** | Heterogeneous or visual content; touch-first layouts            | Browse, glance        |
+
+The test: if a user will ever ask "which of these has the highest X?", they need
+a **table** — aligned columns are what make values comparable. If each item is
+read on its own terms (an email, a notification, a search result), it's a
+**list**. If the content is visual or the layout is thumb-driven, reach for
+**cards**.
+
+<DoDont>
+  <Do title="Match the shape to the task">
+    Use a table for a transactions ledger users sort and total. Use cards for a
+    gallery of products users browse by image.
+  </Do>
+  <Dont title="Default to cards because they look modern">
+    Cards for dense, comparable data force the eye to re-find each field in every
+    card. A table would let users scan one column straight down.
+  </Dont>
+</DoDont>
+
+## What's in this section
+
+Once you've picked the shape, three concerns dominate — and each has its own page:
+
+- **[Data Tables](/docs/data/data-tables)** — anatomy, column sizing and
+  alignment, sorting, density, sticky headers, and row selection.
+- **[Long Lists & Virtualization](/docs/data/long-lists-virtualization)** —
+  pagination vs. infinite scroll vs. load-more, and windowing thousands of rows
+  without dropping frames.
+- **[Responsive Tables](/docs/data/responsive-tables)** — what to do when a
+  wide table meets a narrow screen, since tables are the one layout that refuses
+  to reflow on its own.
+
+<Callout variant="tip" title="The three apply together">
+  A real data view is usually all three at once: a <em>table</em> of many rows
+  that needs <em>virtualization</em> and has to survive a <em>phone</em>. Read
+  them as one story, not three.
+</Callout>

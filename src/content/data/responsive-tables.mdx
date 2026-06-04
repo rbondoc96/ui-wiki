@@ -1,0 +1,131 @@
+---
+title: Responsive Tables
+section: Data
+order: 4
+description: A table is the one layout that won't reflow on its own. Six columns don't gracefully become three — you have to decide what happens when the width runs out.
+---
+
+Most layouts adapt to a narrow screen by wrapping. A table can't: columns are a
+fixed grid, and squeezing six of them into 360px just makes every cell
+unreadable. You have to *choose* a strategy for what happens when width runs out,
+and the right choice depends on whether columns are equally important.
+
+## The four strategies
+
+| Strategy              | Keeps           | Best when                                  |
+| --------------------- | --------------- | ------------------------------------------ |
+| **Horizontal scroll** | All columns     | Every column matters; users will pan       |
+| **Column priority**   | The top columns | Some columns are clearly secondary         |
+| **Collapse to cards** | All data, restacked | Each row is read on its own on mobile  |
+| **Pivot / key-value** | One row at a time | Detail-heavy rows, few at a time         |
+
+### Horizontal scroll
+
+The simplest: let the table overflow its container and scroll sideways. Pin the
+first column (the row's identity) with `position: sticky; left: 0` so a scrolled
+row never becomes anonymous, and make the scroll affordance obvious — a visible
+edge shadow or scrollbar — because hidden horizontal scroll is easy to miss.
+
+Good when every column genuinely matters and users expect to pan (a financial
+grid). Bad as a lazy default — most users never discover columns off the right
+edge.
+
+### Column priority (progressive disclosure)
+
+Rank columns by importance and hide the low-priority ones as width shrinks,
+revealing them via an expand toggle or a "columns" menu. The user sees the
+essentials immediately and can pull in the rest on demand. This is usually the
+best default for genuinely tabular data that must stay a table.
+
+### Collapse to cards
+
+Below a breakpoint, drop the table layout entirely and render each row as a
+stacked card with `label: value` pairs. This is the most readable option on
+phones because it stops pretending a grid fits — but it sacrifices cross-row
+comparison, so don't use it for data whose whole point is scanning a column.
+
+<DoDont>
+  <Do title="Label every value in the card view">
+    Without the column header, each value needs its own inline label —
+    `Status: Active`, `Total: $42.00` — or the card is just orphaned strings.
+  </Do>
+  <Dont title="Shrink all columns to fit">
+    Cramming six columns into a phone with 8px text and mid-word wrapping keeps
+    the "table" but makes it unusable. Drop or restack instead of squeezing.
+  </Dont>
+</DoDont>
+
+<Callout variant="info" title="Pick by reading task, not by breakpoint">
+  The question isn't "how wide is the screen" but "does the user still need to
+  <em>compare across rows</em> here?" If yes, scroll or prioritize columns. If
+  each row is now read on its own, collapse to cards.
+</Callout>
+
+## Don't lose function when you reflow
+
+Whatever you switch to, the table's behaviors have to come with it — a mobile
+view that's read-only when the desktop one wasn't is a downgrade, not a
+responsive design:
+
+- **Sorting** still needs a control (a select or menu, since there are no column
+  headers to click in card view).
+- **Selection** and bulk actions need a home — a checkbox on each card, the
+  action bar still reachable.
+- **Density and touch targets** matter more here, not less: rows that are also
+  tap targets need ~44px. See [Data Tables](/docs/data/data-tables) for the
+  density trade-off.
+
+## Cross-platform
+
+On the web a table is a real element you make responsive. In React Native
+there's no `<table>` at all — you build rows yourself, which means the
+"collapse to cards" strategy is just *the* native implementation.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Start from a semantic `<table>` and adapt with CSS. Wrap it for horizontal
+    scroll, or swap layout at a breakpoint (a container query is ideal — it
+    reacts to the table's own width, not the viewport's).
+
+    ```css
+    .table-wrap { overflow-x: auto; }
+    .table-wrap th:first-child,
+    .table-wrap td:first-child { position: sticky; left: 0; }
+
+    @container (max-width: 40rem) {
+      /* Restack rows as cards below the container's width. */
+      table, thead, tbody, tr, th, td { display: block; }
+      thead { display: none; }
+      td::before { content: attr(data-label); font-weight: 600; }
+    }
+    ```
+  </Platform>
+  <Platform label="React Native">
+    There's no table primitive — a "table" is a `FlatList` of `View` rows. Wide,
+    aligned columns mean a horizontally scrollable `ScrollView`; the common
+    mobile answer is to skip the grid and render each record as a card row from
+    the start.
+
+    ```tsx
+    <FlatList
+      data={rows}
+      keyExtractor={(r) => r.id}
+      renderItem={({ item }) => (
+        <View style={styles.card}>
+          <Field label="Name" value={item.name} />
+          <Field label="Status" value={item.status} />
+          <Field label="Total" value={item.total} />
+        </View>
+      )}
+    />
+    ```
+  </Platform>
+</PlatformTabs>
+
+## Where to go next
+
+You've now got the full picture: pick the [shape](/docs/data), build the
+[table](/docs/data/data-tables), scale it with
+[virtualization](/docs/data/long-lists-virtualization), and survive small
+screens here. For the tap-target and thumb-zone rules these mobile views lean on,
+the broader mobile-ergonomics guidance applies throughout.

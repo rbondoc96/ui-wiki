@@ -1,0 +1,137 @@
+---
+title: Long Lists & Virtualization
+section: Data
+order: 3
+description: Two separate problems hide here — how users move through many rows (paging), and how the browser survives rendering them (windowing). Don't conflate them.
+---
+
+"The list is long" is really two questions. The **product** question is how a
+user moves through more rows than fit on a screen: pages, infinite scroll, or a
+button. The **performance** question is how the browser renders thousands of DOM
+nodes without dropping frames. They have different answers, and solving one
+doesn't solve the other.
+
+## Paging: how the user moves through the set
+
+| Approach          | Best when                                          | Cost                                   |
+| ----------------- | -------------------------------------------------- | -------------------------------------- |
+| **Pagination**    | Users need to find, cite, or return to a position  | A click per page; feels deliberate     |
+| **Load more**     | Browsing forward, but control matters              | Manual; no automatic fetch surprises   |
+| **Infinite scroll** | Casual, exploratory feeds with no "end"          | No footer, lost position, scroll jank   |
+
+The deciding question is whether a row has an **address**. If users say "it was
+on page 3" or need to deep-link, jump, or reach a footer, use pagination.
+Infinite scroll trades all of that for flow — great for a social feed, hostile
+for a search results page someone needs to work through methodically.
+
+<DoDont>
+  <Do title="Give infinite scroll an escape hatch">
+    Pair it with a sticky filter/search and keep the URL in sync with scroll
+    position, so back-button and refresh don't dump the user at the top.
+  </Do>
+  <Dont title="Bury a footer below an infinite list">
+    Content that loads forever means the footer (and anything after the list) is
+    permanently unreachable. Use "load more" if a footer matters.
+  </Dont>
+</DoDont>
+
+<Callout variant="tip" title="Prefer cursor pagination for live data">
+  Offset pagination (`LIMIT 20 OFFSET 40`) skips or repeats rows when the
+  underlying data changes between page loads. Cursor/keyset pagination ("after
+  id X") is stable under inserts and deletes — the right default for feeds.
+</Callout>
+
+## Windowing: how the browser survives the rows
+
+Paging limits how many rows a user *sees at once*, but a single page of a few
+hundred rows — or an infinite list that's grown to thousands — still puts that
+many nodes in the DOM. Layout, paint, and memory all scale with node count, and
+somewhere past a few thousand interactive rows the page stutters.
+
+**Virtualization** (a.k.a. windowing) fixes this by rendering only the rows in
+(and just around) the viewport, recycling them as the user scrolls. A
+10,000-row list keeps ~30 nodes alive instead of 10,000.
+
+Reach for it when:
+
+- The list can realistically reach **thousands** of rows, **and**
+- You want them in one continuous scroll (not paged into screen-sized chunks).
+
+If pagination already caps each page at 25–50 rows, you almost certainly **don't
+need** windowing — it's complexity you'd be adding for nothing.
+
+### What virtualization costs
+
+Windowing isn't free; off-screen rows literally don't exist in the DOM:
+
+- **Ctrl/⌘-F breaks** — browser find can't match text that isn't rendered.
+  Provide your own in-list search.
+- **Accessibility needs care** — set the full count on the container
+  (`aria-rowcount`/`aria-setsize`) so assistive tech announces "row 40 of
+  10,000," not "of 30."
+- **Variable row heights are hard** — the library must measure or estimate each
+  row; wrong estimates cause scroll-jump. Fixed heights are dramatically simpler.
+- **Anchors, sticky elements, and `:target`** to off-screen rows won't work.
+
+<Callout variant="warning" title="Measure before you window">
+  Virtualization is a real maintenance tax. Confirm the DOM node count is
+  actually the bottleneck (profile a scroll) before adding it — slow rows are
+  often caused by heavy per-row components re-rendering, which windowing alone
+  won't fix.
+</Callout>
+
+## Keep rows cheap and stable
+
+Whichever path you take, the row component decides whether scrolling is smooth:
+
+- **Stable keys.** Key rows by a real id, never the array index — index keys make
+  React reuse the wrong row on insert/sort, scrambling state and selection.
+- **Memoize the row.** A long list re-rendering every row on each parent update
+  is the most common "virtualization didn't help" cause.
+- **Defer the expensive bits.** Lazy-load images, debounce per-row effects, and
+  keep cell formatting out of the render hot path.
+
+## Cross-platform
+
+The split is the same everywhere; the tools differ. On the web you opt *into*
+virtualization; on React Native the default list components are *already*
+virtualized.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Plain mapped rows render everything. Add a windowing library only when the
+    count demands it — TanStack Virtual (headless, works for tables and grids)
+    or `react-window` for the simple fixed-height case.
+
+    ```tsx
+    const rowVirtualizer = useVirtualizer({
+      count: rows.length,
+      estimateSize: () => 48, // fixed height = smooth; estimate = jumpier
+      getScrollElement: () => scrollRef.current,
+    })
+    // Render only rowVirtualizer.getVirtualItems(), absolutely positioned.
+    ```
+  </Platform>
+  <Platform label="React Native">
+    Never `.map()` a big array into a `ScrollView` — it mounts every row. Use
+    `FlatList`/`SectionList`, which window by default, or `FlashList` (Shopify)
+    for heavy lists. Give them a real `keyExtractor` and stable row heights.
+
+    ```tsx
+    <FlashList
+      data={rows}
+      keyExtractor={(r) => r.id}
+      estimatedItemSize={48}
+      renderItem={({ item }) => <Row item={item} />}
+    />
+    ```
+  </Platform>
+</PlatformTabs>
+
+## Where to go next
+
+This page handled *how many* rows. For *how wide* a table can get before it
+breaks on a phone, see [Responsive Tables](/docs/data/responsive-tables). For the
+per-row loading and empty treatments, see
+[Loading & Optimistic States](/docs/patterns/loading-states) and
+[Empty States](/docs/patterns/empty-states).

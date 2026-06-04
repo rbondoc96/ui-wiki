@@ -20,7 +20,7 @@ often you'll actually reach for it.
 | ☐    | 9   | Toasts & notification/feedback patterns       | Content     | Where to surface success/error without stealing focus      |
 | ☐    | 10  | Responsive layout & container queries         | Content     | The modern answer to "how do I make this adapt"            |
 | ☐    | 11  | Touch targets & mobile ergonomics             | Content     | Thumb zones, hit slop, 44pt rule — RN-relevant             |
-| ☐    | 12  | Data tables & long lists                      | Content     | Sorting, pagination, density, virtualization, responsive   |
+| ✅   | 12  | Data tables & long lists                      | Content     | Sorting, pagination, density, virtualization, responsive   |
 | ☐    | 13  | Theming & design tokens deep dive             | Content     | Ties your Foundations together into a system               |
 | ☐    | 14  | i18n & RTL                                     | Content     | Cheap to plan for, brutal to retrofit                      |
 | ☐    | 15  | Site polish (tags, related, changelog, RSS)   | Feature     | Quick wins that improve discovery                          |
@@ -145,7 +145,22 @@ hover-doesn't-exist-on-touch.
 **Why:** Small page, high payoff, and squarely in your RN wheelhouse — most
 web-centric wikis ignore it entirely.
 
-## 12. Data tables & long lists — [Content]
+## 12. Data tables & long lists — [Content] ✅ Done
+
+> Shipped as its own **Data** section (`src/content/data/`) rather than a single
+> page, since the concern splits cleanly three ways:
+>
+> - `index.mdx` — Overview: table vs. list vs. cards decision rubric.
+> - `data-tables.mdx` — anatomy, alignment, column sizing, density, sorting,
+>   sticky headers, selection.
+> - `long-lists-virtualization.mdx` — paging (pagination/load-more/infinite) vs.
+>   windowing, with TanStack Virtual / `FlashList` cross-platform tabs.
+> - `responsive-tables.mdx` — horizontal scroll, column priority, collapse to
+>   cards, with web/RN tabs.
+>
+> Section slots between Components and Patterns in the sidebar (pages ordered
+> 1–4; overview at 1 so Foundations keeps the top slot). Uses `<DoDont>`,
+> `<Callout>`, and `<PlatformTabs>` throughout.
 
 Column sizing, sorting, pagination vs infinite scroll, density, sticky headers,
 selection, responsive collapse, virtualization, mobile card fallback.
