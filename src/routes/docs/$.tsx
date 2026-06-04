@@ -6,14 +6,31 @@ import { TableOfContents } from "#/components/layout/toc.tsx"
 import { mdxComponents } from "#/components/mdx-components.tsx"
 import { getDoc, prevNext } from "#/lib/docs.ts"
 
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+})
+
 export const Route = createFileRoute("/docs/$")({
   loader: ({ params }) => {
     const slug = params._splat ?? ""
-    if (!getDoc(slug)) {
+    const doc = getDoc(slug)
+    if (!doc) {
       throw notFound()
     }
-    return { slug }
+    return { description: doc.description, slug, title: doc.title }
   },
+  head: ({ loaderData }) => ({
+    meta: loaderData
+      ? [
+          { title: `${loaderData.title} · UI/UX Wiki` },
+          ...(loaderData.description
+            ? [{ name: "description", content: loaderData.description }]
+            : []),
+        ]
+      : [],
+  }),
   component: DocPage,
 })
 
@@ -43,6 +60,12 @@ function DocPage() {
             <Component />
           </MDXProvider>
         </div>
+
+        {doc.updated ? (
+          <p className="mt-10 text-xs text-muted-foreground">
+            Last updated on {dateFormatter.format(new Date(doc.updated))}
+          </p>
+        ) : null}
 
         <PrevNext next={next} prev={prev} />
       </article>

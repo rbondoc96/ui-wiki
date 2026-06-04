@@ -1,3 +1,8 @@
+declare module "virtual:git-dates" {
+  /** Slug -> ISO date of the doc's last git commit. */
+  export const docDates: Record<string, string | undefined>
+}
+
 declare module "*.mdx" {
   import type { ComponentType } from "react"
   import type { MDXComponents } from "mdx/types"

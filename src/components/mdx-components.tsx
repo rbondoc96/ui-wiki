@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router"
-import { LinkSimpleIcon } from "@phosphor-icons/react"
+import { CheckIcon, CopyIcon, LinkSimpleIcon } from "@phosphor-icons/react"
+import { useRef, useState } from "react"
 import type { MDXComponents } from "mdx/types"
 import type { ComponentPropsWithoutRef, ReactNode } from "react"
 
@@ -86,9 +87,46 @@ export function Callout({
   )
 }
 
+// Wraps Shiki's `<pre>` with a hover-reveal copy button. The code text is read
+// straight from the rendered DOM so we don't have to thread the raw source
+// through the MDX pipeline.
+function CodeBlock({ children, ...props }: ComponentPropsWithoutRef<"pre">) {
+  const preRef = useRef<HTMLPreElement>(null)
+  const [copied, setCopied] = useState(false)
+
+  function copy() {
+    const text = preRef.current?.textContent ?? ""
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
+  return (
+    <div className="group relative my-6">
+      <button
+        aria-label="Copy code"
+        className="absolute top-2.5 right-2.5 z-10 rounded-md border bg-muted/80 p-1.5 text-muted-foreground opacity-0 backdrop-blur transition-all group-hover:opacity-100 hover:bg-muted hover:text-foreground focus-visible:opacity-100"
+        onClick={copy}
+        type="button"
+      >
+        {copied ? (
+          <CheckIcon className="size-3.5 text-emerald-500" />
+        ) : (
+          <CopyIcon className="size-3.5" />
+        )}
+      </button>
+      <pre ref={preRef} {...props}>
+        {children}
+      </pre>
+    </div>
+  )
+}
+
 export const mdxComponents: MDXComponents = {
   a: SmartLink,
   h2: (props) => <AnchoredHeading as="h2" {...props} />,
   h3: (props) => <AnchoredHeading as="h3" {...props} />,
+  pre: CodeBlock,
   Callout,
 }

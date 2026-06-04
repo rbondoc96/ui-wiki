@@ -188,7 +188,7 @@
   @apply bg-muted text-foreground rounded px-1.5 py-0.5 font-mono text-[0.85em];
 }
 .doc-prose pre {
-  @apply border-border my-6 overflow-x-auto rounded-lg border p-4 text-[0.85rem] leading-relaxed;
+  @apply border-border overflow-x-auto rounded-lg border p-4 text-[0.85rem] leading-relaxed;
 }
 .doc-prose pre code {
   @apply font-mono;

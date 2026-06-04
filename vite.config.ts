@@ -9,12 +9,14 @@ import remarkFrontmatter from "remark-frontmatter"
 import remarkGfm from "remark-gfm"
 import remarkMdxFrontmatter from "remark-mdx-frontmatter"
 
+import { gitDates } from "./src/lib/mdx/git-dates-plugin.ts"
 import { remarkTocSlugs } from "./src/lib/mdx/remark-toc-slugs.ts"
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
     devtools(),
+    gitDates(),
     tailwindcss(),
     {
       enforce: "pre",

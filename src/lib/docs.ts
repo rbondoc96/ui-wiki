@@ -1,3 +1,4 @@
+import { docDates } from "virtual:git-dates"
 import type { ComponentType } from "react"
 import type { MDXComponents } from "mdx/types"
 import type { Frontmatter } from "*.mdx"
@@ -17,6 +18,7 @@ export interface Doc {
   slug: string
   title: string
   toc: Array<TocEntry>
+  updated?: string
 }
 
 export interface NavSection {
@@ -37,15 +39,19 @@ function pathToSlug(path: string): string {
     .replace(/\/index$/, "")
 }
 
-const docs: Array<Doc> = Object.entries(modules).map(([path, mod]) => ({
-  Component: mod.default,
-  description: mod.frontmatter.description,
-  order: mod.frontmatter.order ?? 0,
-  section: mod.frontmatter.section,
-  slug: pathToSlug(path),
-  title: mod.frontmatter.title,
-  toc: mod.tableOfContents,
-}))
+const docs: Array<Doc> = Object.entries(modules).map(([path, mod]) => {
+  const slug = pathToSlug(path)
+  return {
+    Component: mod.default,
+    description: mod.frontmatter.description,
+    order: mod.frontmatter.order ?? 0,
+    section: mod.frontmatter.section,
+    slug,
+    title: mod.frontmatter.title,
+    toc: mod.tableOfContents,
+    updated: docDates[slug],
+  }
+})
 
 const bySlug = new Map(docs.map((doc) => [doc.slug, doc]))
 
