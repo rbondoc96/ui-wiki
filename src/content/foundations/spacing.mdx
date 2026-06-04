@@ -1,0 +1,76 @@
+---
+title: Spacing Scale
+section: Foundations
+order: 1
+description: A consistent spacing scale is the cheapest way to make a UI feel designed.
+---
+
+Inconsistent spacing is the single most common reason an interface looks
+"off" even when nothing is obviously broken. A fixed scale removes the
+thousand tiny decisions about whether something should be `13px` or `14px`.
+
+## Use a base unit
+
+Pick a base unit — almost always **4px** — and derive every gap, padding, and
+margin from multiples of it. This keeps rhythm consistent and makes values
+predictable across the whole system.
+
+```ts
+// A 4px-based scale. Keys are multipliers, values are rems.
+export const space = {
+  0: "0",
+  1: "0.25rem", //  4px
+  2: "0.5rem", //   8px
+  3: "0.75rem", //  12px
+  4: "1rem", //     16px
+  6: "1.5rem", //   24px
+  8: "2rem", //     32px
+  12: "3rem", //    48px
+  16: "4rem", //    64px
+} as const
+```
+
+Notice the scale gets *sparser* as it grows — you need fine control at small
+sizes (`4 / 8 / 12`) but rarely care about the difference between `60px` and
+`64px`.
+
+## Prefer gap over margin
+
+For laying out groups, reach for `gap` on a flex/grid container before adding
+margins to children. Gap can't leak across component boundaries and never
+collapses unexpectedly.
+
+```tsx
+// Good: the parent owns the rhythm.
+<div className="flex flex-col gap-4">
+  <Field />
+  <Field />
+</div>
+```
+
+<Callout variant="warning" title="Margin collapsing">
+  Vertical margins between adjacent block elements collapse into the larger of
+  the two — a frequent source of "why is there extra space here?" bugs. `gap`
+  sidesteps this entirely.
+</Callout>
+
+## Spacing communicates grouping
+
+Proximity is a grouping cue: elements that are closer together read as
+related. The practical rule — **space within a group should be smaller than
+space between groups.**
+
+| Relationship      | Spacing       |
+| ----------------- | ------------- |
+| Label → input     | `space.1` (4) |
+| Field → field     | `space.4` (16)|
+| Section → section | `space.12` (48)|
+
+If a label sits as far from its input as two unrelated fields sit from each
+other, the eye can't tell what belongs to what.
+
+## Where to go next
+
+Spacing pairs closely with type and color — see
+[Color Tokens](/docs/foundations/color) for the same token-driven approach
+applied to color.

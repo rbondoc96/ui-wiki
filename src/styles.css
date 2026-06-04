@@ -129,3 +129,76 @@
     @apply font-sans;
     }
 }
+
+/* Shiki dual-theme: rehype emits both light (inline) and `--shiki-dark` vars.
+   We opted out of the default color, so drive both modes explicitly. */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}
+
+/* Long-form documentation typography. */
+.doc-prose {
+  @apply text-foreground/90 text-[0.95rem] leading-7;
+}
+.doc-prose > * + * {
+  @apply mt-4;
+}
+.doc-prose h2 {
+  @apply font-heading text-foreground relative mt-12 mb-4 text-2xl font-semibold tracking-tight;
+}
+.doc-prose h3 {
+  @apply font-heading text-foreground relative mt-8 mb-3 text-lg font-semibold tracking-tight;
+}
+.doc-prose p {
+  @apply text-foreground/90;
+}
+.doc-prose a {
+  @apply text-primary font-medium underline decoration-from-font underline-offset-2 hover:opacity-80;
+}
+.doc-prose ul {
+  @apply ml-6 list-disc;
+}
+.doc-prose ol {
+  @apply ml-6 list-decimal;
+}
+.doc-prose li {
+  @apply mt-1.5;
+}
+.doc-prose li::marker {
+  @apply text-muted-foreground;
+}
+.doc-prose strong {
+  @apply text-foreground font-semibold;
+}
+.doc-prose blockquote {
+  @apply border-border text-muted-foreground border-l-2 pl-4 italic;
+}
+.doc-prose hr {
+  @apply border-border my-8;
+}
+/* Inline code (not inside a highlighted block). */
+.doc-prose :not(pre) > code {
+  @apply bg-muted text-foreground rounded px-1.5 py-0.5 font-mono text-[0.85em];
+}
+.doc-prose pre {
+  @apply border-border my-6 overflow-x-auto rounded-lg border p-4 text-[0.85rem] leading-relaxed;
+}
+.doc-prose pre code {
+  @apply font-mono;
+}
+.doc-prose table {
+  @apply my-6 w-full border-collapse text-sm;
+}
+.doc-prose th {
+  @apply border-border border-b px-3 py-2 text-left font-semibold;
+}
+.doc-prose td {
+  @apply border-border border-b px-3 py-2;
+}

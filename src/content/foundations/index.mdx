@@ -1,0 +1,49 @@
+---
+title: Overview
+section: Foundations
+order: 0
+description: What this wiki is, and how it's organized.
+---
+
+This is my personal reference for building interfaces — the patterns,
+constraints, and reasoning I keep wanting to look up again. It's written for an
+audience of one (me), but the structure follows how real design systems
+document themselves.
+
+## How it's organized
+
+- **Foundations** — the primitives every interface is built from: spacing,
+  color, type. Get these right and everything downstream gets easier.
+- **Components** — how individual UI elements are assembled, the states they
+  need, and the decisions that are easy to get wrong.
+
+## Why a wiki
+
+Design knowledge decays when it lives in scattered Figma comments and Slack
+threads. Writing it down as durable, cross-linked notes forces the reasoning to
+be explicit — and makes it searchable later.
+
+<Callout variant="tip" title="Tip">
+  Hit <kbd>⌘K</kbd> anywhere to jump to a page or heading.
+</Callout>
+
+## Conventions
+
+Every page uses the same shape:
+
+1. A short framing of the problem.
+2. The rule or scale, with concrete values.
+3. The reasoning — *why* this, not the alternative.
+
+Code samples are syntax-highlighted with Shiki and follow the same theme as the
+rest of the site.
+
+```ts
+// Tokens are the source of truth — never hard-code raw values in components.
+const space = {
+  1: "0.25rem",
+  2: "0.5rem",
+  3: "0.75rem",
+  4: "1rem",
+} as const
+```

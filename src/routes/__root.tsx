@@ -2,33 +2,33 @@ import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools"
 import { TanStackDevtools } from "@tanstack/react-devtools"
 
+import { AppHeader } from "#/components/layout/app-header.tsx"
+import { ThemeProvider, themeInitScript } from "#/lib/theme.tsx"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
+      { charSet: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { title: "UI/UX Wiki" },
       {
-        charSet: "utf-8",
-      },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      },
-      {
-        title: "TanStack Start Starter",
+        name: "description",
+        content:
+          "A personal UI/UX knowledge base for full-stack web developers.",
       },
     ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
   notFoundComponent: () => (
-    <main className="container mx-auto p-4 pt-16">
-      <h1>404</h1>
-      <p>The requested page could not be found.</p>
+    <main className="mx-auto max-w-2xl px-6 py-24 text-center">
+      <p className="font-mono text-sm text-muted-foreground">404</p>
+      <h1 className="mt-2 font-heading text-2xl font-semibold">
+        Page not found
+      </h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        The page you’re looking for doesn’t exist.
+      </p>
     </main>
   ),
   shellComponent: RootDocument,
@@ -36,16 +36,18 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body>
-        {children}
+      <body className="min-h-svh">
+        <ThemeProvider>
+          <AppHeader />
+          {children}
+        </ThemeProvider>
         <TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
+          config={{ position: "bottom-right" }}
           plugins={[
             {
               name: "Tanstack Router",

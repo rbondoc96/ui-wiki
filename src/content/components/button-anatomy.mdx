@@ -1,0 +1,81 @@
+---
+title: Button Anatomy
+section: Components
+order: 1
+description: A button is mostly states. Get the states right and the rest follows.
+---
+
+A button looks trivial until you enumerate everything it has to handle:
+variants, sizes, icons, loading, and every interaction state. Most "buggy"
+buttons are really *missing-state* buttons.
+
+## Variants encode hierarchy
+
+Variants aren't decoration — they communicate **importance**. A screen should
+have exactly one primary action in view at a time; everything else steps down.
+
+| Variant       | Use for                                  |
+| ------------- | ---------------------------------------- |
+| `primary`     | The single most important action         |
+| `secondary`   | Common but non-destructive actions        |
+| `ghost`       | Low-emphasis, toolbar-style actions       |
+| `destructive` | Irreversible actions (delete, remove)     |
+
+If two buttons sit side by side and both look primary, the user has to read
+both to decide — the hierarchy has failed.
+
+## Every interactive state
+
+A complete button defines all of these. Skipping any one is what makes a button
+feel cheap:
+
+- **default** — resting
+- **hover** — pointer is over it
+- **focus-visible** — reached by keyboard (must be visible!)
+- **active** — being pressed
+- **disabled** — not actionable, and explained
+- **loading** — work in flight, prevent double-submit
+
+```tsx
+<button
+  className="..."
+  disabled={isPending}
+  aria-busy={isPending}
+  data-icon={isPending ? "inline-start" : undefined}
+>
+  {isPending ? <Spinner /> : null}
+  {isPending ? "Saving…" : "Save"}
+</button>
+```
+
+<Callout variant="warning" title="Never remove the focus ring">
+  `outline: none` without a visible replacement makes a button unusable for
+  keyboard users. Style `:focus-visible` instead — it shows the ring only when
+  it's actually needed.
+</Callout>
+
+## Hit target, not just visual size
+
+The visible button can be small, but the *tappable* area should be at least
+**44×44px** (iOS) / **48×48px** (Material). For a compact icon button, expand
+the hit area with padding rather than growing the icon.
+
+```css
+.icon-button {
+  /* 24px icon, but a 44px target via padding */
+  padding: 10px;
+  line-height: 0;
+}
+```
+
+## Labels are part of the component
+
+A button's label should name the action, not the mechanism — `Save changes`
+beats `Submit`, `Delete project` beats `OK`. The label is the single most
+important accessibility affordance the button has.
+
+## Where to go next
+
+Buttons lean heavily on the spacing and color foundations — revisit
+[Spacing Scale](/docs/foundations/spacing) for the padding values and
+[Color Tokens](/docs/foundations/color) for the variant colors.

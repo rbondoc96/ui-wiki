@@ -1,0 +1,73 @@
+---
+title: Color Tokens
+section: Foundations
+order: 2
+description: Name colors by role, not by value — so themes and dark mode come for free.
+---
+
+The mistake that kills color systems is naming colors after what they *look
+like* (`blue-500`, `gray-200`) and using them directly in components. The fix
+is a second layer of **semantic tokens** named after what they *do*.
+
+## Two layers: primitives and semantics
+
+```ts
+// Layer 1 — primitives: the raw palette. Never used directly in components.
+const palette = {
+  slate900: "oklch(0.21 0.01 250)",
+  slate100: "oklch(0.97 0 0)",
+  blue500: "oklch(0.62 0.19 255)",
+}
+
+// Layer 2 — semantic tokens: what components actually reference.
+const tokens = {
+  background: palette.slate100,
+  foreground: palette.slate900,
+  primary: palette.blue500,
+}
+```
+
+Components only ever read `tokens.background`, never `palette.slate100`. That
+indirection is what makes theming possible: dark mode is just a second mapping
+from the *same* semantic names to different primitives.
+
+## Why OKLCH
+
+Prefer `oklch()` over `hex` or `hsl` for defining a palette. It's perceptually
+uniform — equal numeric steps in lightness *look* like equal steps — so
+generating tints and shades that feel evenly spaced is far easier.
+
+<Callout variant="info" title="Perceptual uniformity">
+  In HSL, `hsl(60 100% 50%)` (yellow) looks much brighter than
+  `hsl(240 100% 50%)` (blue) despite identical lightness values. OKLCH fixes
+  this, which matters the moment you generate a scale programmatically.
+</Callout>
+
+## Don't forget contrast
+
+Every foreground/background pairing needs to clear WCAG contrast minimums:
+
+- **4.5:1** for normal body text
+- **3:1** for large text (≥ 24px, or ≥ 19px bold) and UI components
+
+Bake this into the tokens themselves — if `muted-foreground` on `background`
+fails contrast, the token is wrong, not the usage.
+
+## Dark mode is a remap, not a repaint
+
+Because components reference semantic names, dark mode only redefines the
+mapping at the `:root` / `.dark` level:
+
+```css
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.15 0 0);
+}
+.dark {
+  --background: oklch(0.15 0 0);
+  --foreground: oklch(0.98 0 0);
+}
+```
+
+No component code changes. This is exactly how the theme toggle on this site
+works — try it in the top-right.
