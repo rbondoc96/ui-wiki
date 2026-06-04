@@ -5,6 +5,8 @@ order: 2
 description: A table earns its keep through alignment. Columns, density, sorting, and selection are the details that make rows comparable instead of just stacked.
 ---
 
+import { DensityDemo, NumbersDemo } from "#/components/docs/data-examples.tsx"
+
 A table's whole value is that values line up, so the eye can run down a column
 and compare. Everything below is in service of that — and most "ugly table"
 complaints are really alignment, density, or sorting done wrong.
@@ -40,11 +42,11 @@ and rows don't wobble.
 ```
 
 <DoDont>
-  <Do title="Right-align and tabular-align numbers">
+  <Do preview={<NumbersDemo good />} title="Right-align and tabular-align numbers">
     A price column where `$9.00` and `$1,240.00` share a right edge lets the user
     spot the largest value without reading a single digit.
   </Do>
-  <Dont title="Left-align numbers like text">
+  <Dont preview={<NumbersDemo />} title="Left-align numbers like text">
     Left-aligned numbers of different lengths make magnitude impossible to scan —
     `$1,240.00` looks shorter than `$9.00` at a glance.
   </Dont>
@@ -64,6 +66,8 @@ Density is a deliberate trade, not a default. Comfortable rows (more vertical
 padding) are easier to tap and read; compact rows fit more on screen for
 power users scanning a ledger. If your audience lives in the table all day, offer
 a density toggle rather than guessing.
+
+<DensityDemo />
 
 <Callout variant="info" title="Min row height still applies">
   Even "compact" has a floor on touch devices — rows that are also tap targets

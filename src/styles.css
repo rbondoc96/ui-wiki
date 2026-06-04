@@ -193,12 +193,14 @@
 .doc-prose pre code {
   @apply font-mono;
 }
-.doc-prose table {
+/* Content tables only. Demo tables (embedded UI examples) opt out with
+   `data-ui` so their own utility classes aren't overridden by these. */
+.doc-prose table:not([data-ui]) {
   @apply my-6 w-full border-collapse text-sm;
 }
-.doc-prose th {
+.doc-prose table:not([data-ui]) th {
   @apply border-border border-b px-3 py-2 text-left font-semibold;
 }
-.doc-prose td {
+.doc-prose table:not([data-ui]) td {
   @apply border-border border-b px-3 py-2;
 }

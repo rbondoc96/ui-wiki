@@ -90,6 +90,7 @@ feel most. Especially relevant alongside TanStack Query.
 > Shipped: `src/components/docs/do-dont.tsx` (`<DoDont>` wrapper with `<Do>` /
 > `<Dont>` cards, optional `title` prop), registered globally in
 > `mdx-components.tsx`. First use in `content/patterns/loading-states.mdx`.
+> Extended in #12 with an optional `preview` slot for live visual examples.
 >
 > Retrofitted into existing pages:
 >
@@ -161,6 +162,12 @@ web-centric wikis ignore it entirely.
 > Section slots between Components and Patterns in the sidebar (pages ordered
 > 1–4; overview at 1 so Foundations keeps the top slot). Uses `<DoDont>`,
 > `<Callout>`, and `<PlatformTabs>` throughout.
+>
+> Also extended `<DoDont>` here: `<Do>`/`<Dont>` now take an optional `preview`
+> slot that renders a live example in a framed canvas above the text (see #6).
+> Demos live in `src/components/docs/data-examples.tsx` — `NumbersDemo`
+> (alignment) and `ResponsiveDemo` (collapse-to-cards) feed `preview`s, and
+> `DensityDemo` is a standalone comfortable/compact toggle.
 
 Column sizing, sorting, pagination vs infinite scroll, density, sticky headers,
 selection, responsive collapse, virtualization, mobile card fallback.

@@ -5,7 +5,9 @@ import { cn } from "#/lib/utils.ts"
 
 // Side-by-side "do this / not that" guidance. Use `<Do>` and `<Dont>` as the
 // two children; on narrow screens they stack. Each card takes an optional
-// `title` that states the point in a few words.
+// `title` that states the point in a few words, and an optional `preview` —
+// a live example rendered in a framed canvas above the text, so guidance can
+// be shown, not just described.
 export function DoDont({ children }: { children: ReactNode }) {
   return (
     <div className="not-prose my-8 grid gap-3 md:grid-cols-2">{children}</div>
@@ -29,10 +31,12 @@ const variants = {
 
 function Card({
   children,
+  preview,
   title,
   variant,
 }: {
   children: ReactNode
+  preview?: ReactNode
   title?: string
   variant: keyof typeof variants
 }) {
@@ -50,6 +54,11 @@ function Card({
           {defaultLabel}
         </span>
       </div>
+      {preview ? (
+        <div className="mb-3 overflow-hidden rounded-lg border border-border/60 bg-background p-3">
+          {preview}
+        </div>
+      ) : null}
       {title ? (
         <p className="mb-1 font-medium text-foreground">{title}</p>
       ) : null}
@@ -62,13 +71,15 @@ function Card({
 
 export function Do({
   children,
+  preview,
   title,
 }: {
   children: ReactNode
+  preview?: ReactNode
   title?: string
 }) {
   return (
-    <Card title={title} variant="do">
+    <Card preview={preview} title={title} variant="do">
       {children}
     </Card>
   )
@@ -76,13 +87,15 @@ export function Do({
 
 export function Dont({
   children,
+  preview,
   title,
 }: {
   children: ReactNode
+  preview?: ReactNode
   title?: string
 }) {
   return (
-    <Card title={title} variant="dont">
+    <Card preview={preview} title={title} variant="dont">
       {children}
     </Card>
   )

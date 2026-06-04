@@ -5,6 +5,8 @@ order: 4
 description: A table is the one layout that won't reflow on its own. Six columns don't gracefully become three — you have to decide what happens when the width runs out.
 ---
 
+import { ResponsiveDemo } from "#/components/docs/data-examples.tsx"
+
 Most layouts adapt to a narrow screen by wrapping. A table can't: columns are a
 fixed grid, and squeezing six of them into 360px just makes every cell
 unreadable. You have to *choose* a strategy for what happens when width runs out,
@@ -45,12 +47,12 @@ phones because it stops pretending a grid fits — but it sacrifices cross-row
 comparison, so don't use it for data whose whole point is scanning a column.
 
 <DoDont>
-  <Do title="Label every value in the card view">
-    Without the column header, each value needs its own inline label —
-    `Status: Active`, `Total: $42.00` — or the card is just orphaned strings.
+  <Do preview={<ResponsiveDemo good />} title="Restack rows as labelled cards">
+    Below the breakpoint each row becomes a card with its own inline labels —
+    `Status: Active`, `Total: $42.00` — so every value stays readable and named.
   </Do>
-  <Dont title="Shrink all columns to fit">
-    Cramming six columns into a phone with 8px text and mid-word wrapping keeps
+  <Dont preview={<ResponsiveDemo />} title="Shrink all columns to fit">
+    Cramming five columns into a phone with 8px text and mid-word wrapping keeps
     the "table" but makes it unusable. Drop or restack instead of squeezing.
   </Dont>
 </DoDont>
