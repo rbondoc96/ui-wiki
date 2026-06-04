@@ -19,6 +19,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                   params={{ _splat: doc.slug }}
                   onClick={onNavigate}
                   className="block rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  activeOptions={{ exact: true }}
                   activeProps={{
                     className: "bg-accent text-foreground font-medium",
                   }}
