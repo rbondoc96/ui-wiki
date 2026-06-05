@@ -21,15 +21,15 @@ that, so all unchecked.
 
 | Done | #   | Section              | Item                                       | Type    | Why it ranks here                                          |
 | ---- | --- | -------------------- | ------------------------------------------ | ------- | ---------------------------------------------------------- |
-| ☐    | 1   | Rendering & Delivery | Rendering strategy decision rubric         | Content | The page you'll point teammates at on every new project    |
+| ✅   | 1   | Rendering & Delivery | Rendering strategy decision rubric         | Content | The page you'll point teammates at on every new project    |
 | ✅   | 2   | Routing & Navigation | Nav pattern picker: tab vs sidebar vs top  | Content | The recurring "where does navigation live" decision        |
 | ✅   | 3   | Routing & Navigation | URL as state, search params & deep linking | Content | Most-skipped, most-gotten-wrong; shared web/RN concern      |
 | ✅   | 4   | Layouts & Archetypes | App shell & layout composition             | Content | The frame every other screen hangs inside                   |
 | ✅   | 5   | Routing & Navigation | Web vs RN navigation models                | Content | Where the two stacks diverge hardest — pure cross-platform   |
 | ✅   | 6   | Rendering & Delivery | Streaming SSR & Suspense                   | Content | The modern default; ties straight into loading states       |
 | ✅   | 7   | Layouts & Archetypes | Dashboard layout & information density     | Content | High-recurrence admin work; pairs with Data tables          |
-| ☐    | 8   | Rendering & Delivery | Hydration, islands & partial hydration     | Content | Explains the TTI/"why isn't it clickable" mystery           |
-| ☐    | 9   | Routing & Navigation | Route architecture & code-splitting        | Content | Sets up everything else in this section                     |
+| ✅   | 8   | Rendering & Delivery | Hydration, islands & partial hydration     | Content | Explains the TTI/"why isn't it clickable" mystery           |
+| ✅   | 9   | Routing & Navigation | Route architecture & code-splitting        | Content | Sets up everything else in this section                     |
 | ✅   | 10  | All                  | Scale-map landing for the library          | Feature | Orients readers; cheap; makes the macro/micro split legible |
 | ✅   | 11  | Rendering & Delivery | Data fetching & caching at the route level | Content | Loaders/RSC/Query — the actual day-job decision             |
 | ✅   | 12  | Layouts & Archetypes | Landing / marketing page anatomy           | Content | Different rules from app UI; you build these too            |
@@ -37,7 +37,7 @@ that, so all unchecked.
 | ✅   | 14  | Layouts & Archetypes | Responsive app-shell behavior              | Content | Where shell meets RN/responsive — the adaptive shell        |
 | ✅   | 15  | Layouts & Archetypes | Master-detail / multi-pane layouts         | Content | The list+detail archetype, and how it folds on mobile       |
 | ☐    | 16  | Rendering & Delivery | ISR & partial pre-rendering (PPR)          | Content | The "mostly static, partly dynamic" middle ground           |
-| ☐    | 17  | Layouts & Archetypes | Empty & first-run dashboards               | Content | Extends Empty States up to the whole-screen scale           |
+| ✅   | 17  | Layouts & Archetypes | Empty & first-run dashboards               | Content | Extends Empty States up to the whole-screen scale           |
 | ✅   | 18  | All                  | Diagram component for delivery timelines   | Feature | Rendering/hydration are visual; a reusable diagram block helps |
 
 ---
@@ -49,7 +49,11 @@ How and when the screen reaches the user, and the UX consequences of each choice
 *visible* and *interactive*. Ties back to
 [Loading & Optimistic States](/docs/patterns/loading-states) throughout.
 
-## 1. Rendering strategy decision rubric — [Content]
+## 1. Rendering strategy decision rubric — [Content] ✅ Done
+
+> Shipped as `app-screens/rendering/decision-rubric.mdx` with a five-strategy
+> `Timeline` (visible-vs-interactive across CSR/SSR/SSG/ISR/PPR), a decision table
+> keyed on personalization/freshness/SEO, and a decision-order walkthrough.
 
 CSR / SSR / SSG / ISR / PPR side by side, framed by what the user *feels*: when
 is content visible, when is it interactive, who pays the latency, and how each
@@ -76,7 +80,11 @@ level), and how streaming changes perceived performance vs. blocking SSR.
 TanStack Start streaming), and it connects directly to the existing loading
 page — Suspense fallbacks *are* loading states, just hoisted to the route.
 
-## 8. Hydration, islands & partial hydration — [Content]
+## 8. Hydration, islands & partial hydration — [Content] ✅ Done
+
+> Shipped as `app-screens/rendering/hydration.mdx` with a `Timeline` of the
+> paint-vs-interactive gap, an `IslandsDiagram` for partial hydration, and the
+> rage-click warning.
 
 Why a server-rendered page can look done but not respond (the uncanny valley
 between paint and TTI), hydration cost, islands / selective hydration, and
@@ -169,7 +177,11 @@ abstraction leaks. Mostly `<PlatformTabs>`.
 the thing most web-only wikis can't write. Ranked just below the broadly-useful
 picker and URL pages because it's deeper/narrower.
 
-## 9. Route architecture & code-splitting — [Content]
+## 9. Route architecture & code-splitting — [Content] ✅ Done
+
+> Shipped as `app-screens/navigation/route-architecture.mdx` with a `RouteTree`
+> visual (nested routes with layout/lazy badges), the layout-route + Outlet
+> pattern, and code-split-at-boundaries + prefetch-on-intent.
 
 Structuring routes: nested layouts, route groups, the layout-route pattern (a
 parent route renders shared chrome + an `<Outlet>`), and splitting bundles along
@@ -279,7 +291,11 @@ to #14.
 **Why:** A pervasive archetype with a real cross-platform twist (the same layout
 is two panes on web, a navigation stack on phone), connecting routing and layout.
 
-## 17. Empty & first-run dashboards — [Content]
+## 17. Empty & first-run dashboards — [Content] ✅ Done
+
+> Shipped as `app-screens/layouts/empty-first-run.mdx` with a `FirstRunDashboard`
+> toggle (first-run vs. populated) and the first-run / cleared / no-results
+> distinction.
 
 The whole-screen empty state: a dashboard before any data, first-run onboarding,
 zero-config setup. Extends the component-scale

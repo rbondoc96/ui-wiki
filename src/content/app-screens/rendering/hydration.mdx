@@ -1,0 +1,101 @@
+---
+title: Hydration & islands
+section: Rendering & Delivery
+library: app-screens
+order: 8
+description: Why a server-rendered page can look finished but not respond — the gap between paint and interactive — what hydration costs, and how islands and partial hydration shrink it by shipping less JS.
+---
+
+import { Timeline } from "#/components/docs/timeline.tsx"
+import { IslandsDiagram } from "#/components/docs/hydration-examples.tsx"
+
+A server-rendered page paints fast, then sits there not working. The HTML is
+visible, but the buttons do nothing until **hydration** runs: the client
+downloads the JS, re-builds the component tree, and attaches event handlers to
+the markup the server already sent. The window between "I can see it" and "I can
+use it" is the single most confusing rendering bug, and it's inherent to the
+HTML-then-hydrate model every server strategy uses.
+
+## The visible-but-dead window
+
+<Timeline
+  caption="The page is painted and visible long before it's interactive; in the gap, clicks do nothing."
+  lanes={[
+    { label: "page", segments: [{ tone: "wait", label: "server", width: 20 }, { tone: "busy", label: "visible · HTML painted", width: 35 }, { tone: "live", label: "interactive · hydrated", width: 45 }] },
+  ]}
+  markers={[{ at: 20, label: "first paint" }, { at: 55, label: "interactive" }]}
+/>
+
+In that middle band the page looks completely done, so users click, and nothing
+happens. They click again, harder. A fast-looking but dead screen is its own UX
+failure, often a worse one than a slower screen that's honest about still
+loading.
+
+<Callout variant="warning" title="Looks done ≠ is done">
+  The dead window causes rage-clicks and double-submits because nothing signals
+  that the page isn't ready. If hydration is slow, reflect it: disable or show a
+  pending state on critical controls until they're wired up, rather than letting
+  a painted-but-dead button absorb clicks silently.
+</Callout>
+
+## Hydration cost scales with JS
+
+Hydration isn't free, and its cost tracks the amount of JavaScript the page
+ships: more interactive components mean more to download, parse, and wire up,
+which means a longer dead window. The lever is **ship less JS** to the parts that
+don't need it. Two ways to do that:
+
+- **Islands** — render the page as mostly static HTML and hydrate only the
+  interactive regions, each independently. The static parts ship no JS at all.
+- **Selective / progressive hydration** — hydrate the important or visible
+  islands first and defer the rest, so the controls a user reaches for come alive
+  before the ones below the fold.
+
+<IslandsDiagram />
+
+Server Components push this further: components that never need interactivity run
+only on the server and ship zero client JS, leaving a smaller hydration job for
+the genuinely interactive leaves.
+
+<DoDont>
+  <Do title="Hydrate the interactive parts, ship the rest as HTML">
+    Treat static content as static: render it on the server and don't ship JS for
+    it. Reserve hydration for the regions that actually respond to input, and the
+    dead window shrinks with the bundle.
+  </Do>
+  <Dont title="Hydrate the whole page as one big app">
+    Shipping the entire tree as a client app means every static paragraph waits
+    behind the same hydration pass, stretching the visible-but-dead window across
+    the whole screen for no interactive benefit.
+  </Dont>
+</DoDont>
+
+## Web vs. native
+
+<PlatformTabs>
+  <Platform label="Web">
+    Hydration is the literal cost of making server HTML interactive. Minimize it
+    with islands, selective hydration, and Server Components, and measure the gap
+    as time-to-interactive, not just first paint. A green Lighthouse paint score
+    over a 4-second TTI is exactly this problem.
+  </Platform>
+  <Platform label="React Native">
+    There's no server HTML and no hydration step — views render natively. The
+    analogous cost is **bundle parse and first mount**: a big JS bundle delays the
+    first interactive screen the same way hydration delays the web's. The same fix
+    rhymes — ship less, lazy-load screens, and defer non-critical work off the
+    first mount.
+  </Platform>
+</PlatformTabs>
+
+This is the bill that comes due after the
+<a href="/docs/app-screens/rendering/decision-rubric">rubric</a> picks a server
+strategy, and it's why <a href="/docs/app-screens/rendering/streaming-ssr">streaming</a>
+hydrates the shell early: both are about closing the gap between visible and
+usable.
+
+<Callout variant="tip" title="This page, in one line">
+  Server HTML is visible before it's interactive; hydration closes that gap and
+  costs JS, so ship less of it — static stays HTML, islands hydrate independently,
+  important ones first.
+</Callout>

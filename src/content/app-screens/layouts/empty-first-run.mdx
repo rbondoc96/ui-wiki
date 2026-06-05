@@ -1,0 +1,71 @@
+---
+title: Empty & first-run dashboards
+section: Layouts & Archetypes
+library: app-screens
+order: 37
+description: A dashboard's first impression is almost always empty. The zero state isn't a smaller version of the full one — it's the onboarding, the place that turns a blank screen into a first action.
+---
+
+import { FirstRunDashboard } from "#/components/docs/firstrun-examples.tsx"
+
+Every dashboard ships with a full state in mind, and every user arrives to an
+empty one. The first time someone opens it there's no data, and the screen you
+designed for charts and tables is a void. That zero state is not an edge case to
+bolt on later, it's the **activation surface**: the moment that decides whether
+the user takes a first action or leaves.
+
+<FirstRunDashboard />
+
+## First-run is onboarding, not an error
+
+A blank dashboard with "No data" is a dead end. A first-run state does a job:
+name what will appear here, then offer the **one action** that fills it. Toggle
+the demo above, the empty state isn't a faded version of the populated one, it's
+a different layout aimed at a single outcome (create the first project). It
+points at the primary action, hints at what success looks like, and often offers
+a shortcut (import, sample data) to get past zero fast.
+
+## Three kinds of empty
+
+"Empty" isn't one state. They look similar and mean opposite things, so don't
+ship one generic message for all three.
+
+| Kind                | Means                              | Show                                       |
+| ------------------- | ---------------------------------- | ------------------------------------------ |
+| **First-run**       | Nothing exists yet                 | Onboarding: what goes here + primary CTA   |
+| **Cleared / done**  | User emptied it (inbox zero)       | A positive, "all caught up," not an error  |
+| **No results**      | A filter or search matched nothing | "Nothing matches" + a way to clear/adjust  |
+
+The first-run state activates, the cleared state reassures, the no-results state
+helps recover. Same blank region, three different jobs.
+
+<DoDont>
+  <Do title="Design the zero state as a first action">
+    Make the empty dashboard guide the user to the one thing that fills it: a
+    clear headline, a hint of what's coming, and a single primary CTA. Design this
+    state first, since it's the one every new user sees.
+  </Do>
+  <Dont title="Ship a blank canvas or a generic 'No data'">
+    Empty regions with no guidance, or one "No data available" reused for
+    first-run, cleared, and no-results alike, waste the highest-intent moment a
+    user has and leave them with nothing to do.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="Don't design only the full state">
+  It's tempting to design the dashboard packed with data and treat empty as an
+  afterthought, but the full state is what users earn and the empty state is what
+  they start with. A screen that's only been designed full looks broken on day
+  one.
+</Callout>
+
+This is the whole-screen scale of <a href="/docs/patterns/empty-states">empty
+states</a>, applied to the <a href="/docs/app-screens/layouts/dashboard-layout">dashboard</a>:
+the same first-action thinking, sized up from a single component's empty list to
+an entire screen's first impression.
+
+<Callout variant="tip" title="This page, in one line">
+  A dashboard's empty state is its onboarding — design the zero state first as a
+  guide to one clear action, and distinguish first-run from cleared from
+  no-results instead of shipping one blank "No data."
+</Callout>

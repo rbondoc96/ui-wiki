@@ -1,0 +1,91 @@
+---
+title: Route architecture
+section: Routing & Navigation
+library: app-screens
+order: 5
+description: How routes are structured — nested routes mirroring nested UI, layout routes for shared chrome, and code-splitting at route boundaries so each route loads as its own chunk.
+---
+
+import { RouteTree } from "#/components/docs/route-examples.tsx"
+
+Before you decide where navigation lives or what's in the URL, you decide how the
+routes are **structured**. Get the tree right and shared chrome, nested views,
+and bundle-splitting fall out of it; get it wrong and you fight the router on
+every screen. The structure has two load-bearing ideas: layout nesting and
+code-splitting.
+
+<RouteTree />
+
+## Layout routes and nesting
+
+Nested routes should mirror nested UI. A **layout route** renders shared chrome,
+a header, a sidebar, an app shell, and an `<Outlet>` where its child route
+renders. `/app` holds the shell; `/app/projects` and `/app/settings` render
+inside it without re-declaring the chrome. The route tree becomes the source of
+truth for "what wraps what," so the
+<a href="/docs/app-screens/layouts/nav-rail-triptych">app shell</a> is declared
+once at the layout route and every child inherits it.
+
+This is also where per-route concerns live: a route colocates its component, its
+<a href="/docs/app-screens/rendering/data-fetching">data loader</a>, and its
+error boundary, so a failure or a slow load is scoped to that branch instead of
+taking down the whole screen.
+
+## Code-splitting at route boundaries
+
+The route tree is the natural place to split the bundle. Each **lazy** route
+ships as its own chunk that loads when you navigate to it, so the initial
+download is just the shell and the first route, not the entire app. Routes are
+the right seam because the user only pays for a screen when they go there, and
+the boundary is obvious.
+
+Pair it with **prefetch on intent** (from
+<a href="/docs/app-screens/rendering/data-fetching">data fetching</a>): start
+loading a route's chunk on link hover or focus, so by the time the user clicks,
+the code is already there. Splitting removes the up-front cost; prefetching hides
+the on-navigation cost.
+
+<DoDont>
+  <Do title="Split at route boundaries, prefetch on intent">
+    Lazy-load each route so the initial bundle stays small, and prefetch the next
+    route's chunk on hover. The user downloads a screen just before they need it,
+    not all screens at startup.
+  </Do>
+  <Dont title="One bundle, or a chunk per component">
+    Shipping the whole app as one bundle makes startup pay for screens nobody
+    visits. Over-splitting into hundreds of tiny chunks swings the other way: a
+    waterfall of request overhead. Routes are the right grain.
+  </Dont>
+</DoDont>
+
+## Web vs. native
+
+The unit of structure differs; the splitting instinct carries over.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Routes are defined by file or config (TanStack Router, React Router), with
+    layout routes and `<Outlet>` for nesting. Mark routes lazy to code-split them;
+    the router fetches the chunk on navigation and can prefetch on intent. The URL
+    is the structure.
+  </Platform>
+  <Platform label="React Native">
+    The structure is the <a href="/docs/app-screens/navigation/web-vs-rn-navigation">navigator
+    tree</a>, not URL segments: stacks and tabs nest the way layout routes do.
+    Code-splitting is coarser (native bundles aren't fetched per route), but you
+    still lazy-load heavy screens with `React.lazy` / dynamic imports, and Expo
+    Router brings file-based routes to the navigator model.
+  </Platform>
+</PlatformTabs>
+
+This sets up the rest of the section: the structure here is what the
+<a href="/docs/app-screens/navigation/nav-pattern-picker">nav chrome</a> exposes,
+what <a href="/docs/app-screens/navigation/url-as-state">URL state</a> is layered
+onto, and what <a href="/docs/app-screens/navigation/breadcrumbs">breadcrumbs</a>
+read to show position.
+
+<Callout variant="tip" title="This page, in one line">
+  Nest routes to mirror the UI (layout routes wrap children and own the shell),
+  colocate each route's data and errors, and code-split at route boundaries with
+  prefetch on intent so startup stays small.
+</Callout>

@@ -1,0 +1,90 @@
+---
+title: Rendering strategy rubric
+section: Rendering & Delivery
+library: app-screens
+order: 2
+description: CSR, SSR, SSG, ISR, PPR side by side, chosen by the content's nature — freshness, personalization, SEO, scale — not by the framework default. The one page to reopen at the start of every project.
+---
+
+import { Timeline } from "#/components/docs/timeline.tsx"
+
+The <a href="/docs/app-screens/rendering">overview</a> framed rendering as a UX
+decision: when is the screen **visible**, when is it **interactive**, and who
+waits. This is the page that turns that framing into a choice. Pick by the
+nature of the content, not by what the framework does when you `create` a new
+project.
+
+## The five strategies on one axis
+
+Each strategy makes a different trade between time-to-visible and
+time-to-interactive. Lighter means **visible** (HTML painted), darker means
+**interactive** (hydrated and usable); grey is the user waiting on a blank
+screen.
+
+<Timeline
+  caption="Server strategies paint HTML first and hydrate later; CSR paints nothing until JS runs, then is interactive at once."
+  lanes={[
+    { label: "CSR", segments: [{ tone: "wait", label: "blank · load JS", width: 55 }, { tone: "live", label: "render + interactive", width: 45 }] },
+    { label: "SSR", segments: [{ tone: "wait", label: "server", width: 18 }, { tone: "busy", label: "HTML visible", width: 22 }, { tone: "live", label: "hydrated", width: 60 }] },
+    { label: "SSG", segments: [{ tone: "busy", label: "cached HTML", width: 10 }, { tone: "live", label: "hydrated", width: 90 }] },
+    { label: "ISR", segments: [{ tone: "busy", label: "cached HTML", width: 12 }, { tone: "live", label: "hydrated", width: 88 }] },
+    { label: "PPR", segments: [{ tone: "busy", label: "static shell", width: 10 }, { tone: "live", label: "shell interactive", width: 25 }, { tone: "busy", label: "dynamic streams in", width: 30 }, { tone: "live", label: "complete", width: 35 }] },
+  ]}
+/>
+
+SSG and ISR paint almost instantly because the HTML already exists; SSR pays a
+per-request server cost first; CSR shows nothing until the bundle runs; PPR
+paints a static shell immediately and streams the dynamic holes in.
+
+## Decide by the content
+
+Four properties of the content decide it. Read your route against them.
+
+| Property                     | Pushes you toward            | Why                                              |
+| ---------------------------- | ---------------------------- | ------------------------------------------------ |
+| **Per-user / personalized**  | SSR or CSR                   | Can't be built ahead of time; needs the request  |
+| **Changes rarely**           | SSG (or ISR)                 | Build once, serve from cache, fastest paint      |
+| **Needs SEO + fast paint**   | SSG / SSR / PPR              | Crawlers and first paint need server HTML        |
+| **Behind auth, SEO moot**    | CSR is fine                  | No crawler to please; ship the app shell         |
+| **Static frame, dynamic holes** | PPR                       | Instant shell, stream the per-request parts      |
+
+A workable decision order: _Is it personalized?_ → SSR or CSR. _Does it change
+rarely and need SEO?_ → SSG, with ISR if it's occasionally stale. _Is it a public
+page that must paint fast?_ → server-render it. _Is it behind a login where SEO
+doesn't matter?_ → CSR is fine. _Static frame with a few dynamic regions?_ → PPR.
+
+<DoDont>
+  <Do title="Choose per route">
+    Pick the strategy route by route: static-render the marketing page, SSR the
+    personalized dashboard, client-render the app behind auth. The right answer
+    changes within one app.
+  </Do>
+  <Dont title="One strategy for the whole app">
+    SSG a per-user feed and it leaks stale or wrong data; CSR a public landing
+    page and you tank SEO and first paint. The framework default is rarely right
+    for every route.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="Whatever you pick, mind the gap">
+  Every server strategy paints HTML before it's interactive, so the
+  visible-but-dead window from <a href="/docs/app-screens/rendering/hydration">hydration</a>
+  applies to all of them. Choosing SSR/SSG/PPR wins first paint; it doesn't make
+  the page usable until the JS arrives.
+</Callout>
+
+## Where the rest of the section fits
+
+The rubric picks the strategy; the neighbouring pages handle the consequences.
+<a href="/docs/app-screens/rendering/streaming-ssr">Streaming</a> keeps a slow
+query from blocking the server-rendered paint;
+<a href="/docs/app-screens/rendering/hydration">hydration</a> is the cost you pay
+to make that paint interactive; and
+<a href="/docs/app-screens/rendering/data-fetching">route-level data fetching</a>
+decides who waits for the data underneath it all.
+
+<Callout variant="tip" title="This page, in one line">
+  Match the rendering strategy to each route's content — personalized wants
+  server-per-request, rarely-changing wants static, auth-only can be client — and
+  remember every server strategy still has to hydrate before it's usable.
+</Callout>
