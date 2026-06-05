@@ -1,0 +1,171 @@
+---
+title: Nav-rail + triptych
+section: Layouts & Archetypes
+library: app-screens
+order: 30
+description: The thin-rail, list, content, metadata shell behind Linear, Superhuman, and most mail clients. A master-detail layout with a navigation rail in front and a context rail behind.
+---
+
+import {
+  NavRailTriptych,
+  NavRailTriptychAnatomy,
+} from "#/components/docs/layout-examples.tsx"
+
+The shell behind Linear, Superhuman, and nearly every modern mail client is the
+same four-region frame: a thin **nav rail** of contexts, a filterable **list**,
+a **content** panel for the selected item, and a **metadata** rail of facts and
+cross-references. It is a master-detail layout with a navigation rail bolted to
+the front and a context rail bolted to the back, and it earns its popularity by
+keeping _navigate_, _scan_, _read_, and _relate_ visible at the same time so the
+user never loses their place.
+
+<Callout variant="info" title="Why “triptych”?">
+  A triptych is an artwork in three hinged panels: a wide central scene flanked
+  by two narrower wings. The name carries over because the heart of this layout
+  is exactly that, the **list**, **content**, and **metadata** panels standing
+  side by side, with the content panel widest in the middle. The nav rail isn't
+  one of the three; it's the frame the triptych hangs on, which is why the
+  pattern is named **nav-rail + triptych** rather than a four-panel anything.
+</Callout>
+
+<NavRailTriptychAnatomy />
+
+## Anatomy
+
+Each region answers a different question, and the discipline of the pattern is
+that none of them tries to do a second job.
+
+### Rail — where am I?
+
+A thin column of top-level contexts (Inbox, Pull Requests, Jira, Notes…) with
+settings or account pinned to the bottom. It is chrome, not content: it changes
+_what_ the list shows, never the selection inside it. Keep it to icons, expand
+to labels on hover or toggle, and collapse it first when width gets tight.
+
+### List — what's here, and which one?
+
+The per-context column, topped by a filter and toolbar header (state, "mine",
+needs-review, repo, search). Its only job is to make one item findable and
+selectable. Rows are dense and scannable: a status marker, a title, a line of
+secondary text. Selecting a row drives everything to its right.
+
+### Content — the thing itself
+
+The widest region, where the selected item is rendered in full: a PR diff, an
+email thread, a rendered note. A **Linked** block here is what turns a list of
+records into a graph, surfacing the issues, notes, and PRs tied to this one.
+
+### Metadata — what relates to it?
+
+A narrow rail of facts about the selection (author, dates, reviewers) and
+cross-references out to other contexts. It is the first region to fold away when
+space is short, because it supports the content rather than carrying it.
+
+Drive the live shell below: switch contexts in the rail, select a row to swap
+both right-hand panels, and collapse the rail or the metadata column to watch
+the triptych fold to two panes.
+
+<NavRailTriptych />
+
+## When it wins
+
+This layout is the right call when the work is **browse-then-act on a stream of
+similar items**: triaging a queue, working an inbox, reviewing PRs, moving
+tickets. It pays off most when:
+
+- Items share a shape, so one list and one content renderer cover them all.
+- Users keep their place while ranging across many items (the list stays put).
+- The work is **keyboard-first** and high-volume; the fixed frame lets `j`/`k`
+  and shortcuts move through items without re-orienting on every navigation.
+- Items relate to each other, so the metadata rail and a Linked block earn their
+  keep.
+
+## When it breaks
+
+The frame turns into a cage when the content stops fitting the mold.
+
+- **Wide content.** Tables, canvases, dashboards, and diff views fight a list
+  and a metadata rail for horizontal room. Below ~1100px you are choosing which
+  region to starve.
+- **One-off screens.** Settings, billing, or an onboarding flow have no "list of
+  peers" to scan; forcing them into the middle pane leaves two empty rails.
+- **Shallow apps.** Three destinations and no per-context list means the rail and
+  list are pure overhead. Reach for top nav instead.
+- **Mobile.** Four columns cannot coexist on a phone; the layout _must_ degrade
+  to a single-pane drill-down (see below).
+
+<DoDont>
+  <Do title="Let the rail collapse, the metadata hide">
+    Make the rail collapse to icons and the metadata rail hideable, content-out.
+    The list and content are the load-bearing panes; the other two are
+    affordances that yield space on demand.
+  </Do>
+  <Dont title="Pin all four panes at every width">
+    Four fixed columns at 1280px become four cramped columns at 900px and an
+    unusable mess on a tablet. A frame that can't shed regions can't follow the
+    user off the desktop.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="Don't make the list a second nav">
+  The rail switches contexts; the list selects within one. When list rows start
+  navigating to unrelated screens, you've grown a second navigation system, and
+  users lose the one guarantee this layout makes: that selecting a row only ever
+  changes the content to its right.
+</Callout>
+
+## Collapsing down: from triptych to one pane
+
+The four regions are a priority order, not a fixed grid. As width shrinks, shed
+from the outside in: metadata folds to a drawer or a tab, the rail collapses to
+icons, and finally the list and content split into separate screens. The web and
+native stacks reach the same single-pane endpoint by different routes.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Drive it with breakpoints and container queries. Wide: all four panes.
+    Medium: metadata becomes a toggle drawer over the content, rail collapses to
+    icons. Narrow: it's a master-detail pair where the list and content are two
+    routes (`/prs` and `/prs/128`), so the URL still deep-links a single item and
+    the back button returns to the list. The rail becomes a bottom tab bar or a
+    hamburger.
+  </Platform>
+  <Platform label="React Native">
+    There's no fluid resize; you branch on device class. Tablet landscape can run
+    the list + content split (React Navigation's two-column layouts, Expo
+    Router's parallel segments). Phone collapses to a native stack: the list is
+    one screen, tapping a row pushes the content screen, the metadata becomes a
+    section inside it or a bottom sheet. The rail is a bottom tab bar, not a side
+    column. Same priority order, expressed as a push navigator instead of a
+    grid.
+  </Platform>
+</PlatformTabs>
+
+## Variants
+
+The same skeleton stretches across a few common shapes:
+
+- **Two-pane split (no metadata).** Drop the metadata rail and fold its facts
+  into the content header. The Linear/GitHub-issue default; the simplest version
+  of the pattern.
+- **Metadata as a drawer.** Keep the facts, but slide them in over the content
+  on demand instead of holding a permanent column. Buys content width at the
+  cost of a click.
+- **Expanding rail.** The rail toggles between an icon strip and a labelled
+  column, sometimes absorbing the list entirely (the "collapse to icons" Linear
+  move) for a focused, two-pane read.
+- **Three-pane mail.** Folders rail, message list, message body, with the
+  metadata folded into the message header. The oldest member of this family and
+  the reason the shape feels so familiar.
+
+This is the desktop-shell end of <a href="/docs/app-screens/rendering">App &
+Screens</a>; the list and content panes are a master-detail pair, and the same
+loading and selection rules from <a href="/docs/patterns/loading-states">Loading
+& Optimistic States</a> and <a href="/docs/data/tables-vs-lists">Tables vs.
+Lists</a> apply to the middle two columns.
+
+<Callout variant="tip" title="This pattern, in one line">
+  A navigation rail, a scannable list, the selected thing, and what relates to
+  it, with the outer two regions designed to fold away the moment space runs
+  short.
+</Callout>
