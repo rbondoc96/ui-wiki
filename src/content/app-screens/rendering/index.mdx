@@ -1,0 +1,93 @@
+---
+title: Overview
+section: Rendering & Delivery
+library: app-screens
+order: 1
+description: CSR, SSR, SSG, ISR, PPR — the rendering choice is really a UX choice. It decides when a screen is visible, when it's interactive, and who waits.
+---
+
+Every rendering strategy answers the same two questions: **when does the screen
+become visible**, and **when does it become interactive**? Those are the moments
+users actually feel — the acronyms are just different
+trade-offs between them. Pick by the experience you want, not by what the
+framework defaults to.
+
+- **CSR** — Client-Side Rendering
+- **SSR** — Server-Side Rendering
+- **SSG** — Static Site Generation
+- **ISR** — Incremental Static Regeneration
+- **PPR** — Partial Pre-rendering
+
+## The strategies, by what the user feels
+
+| Strategy | Built…            | First paint        | Interactive after        | Best for                         |
+| -------- | ----------------- | ------------------ | ------------------------ | -------------------------------- |
+| **CSR**  | in the browser    | after JS loads     | once JS runs             | app shells behind auth           |
+| **SSR**  | per request       | fast (server HTML) | after hydration          | dynamic, personalized pages      |
+| **SSG**  | at build time     | fastest (static)   | after hydration          | content that rarely changes      |
+| **ISR**  | build + on demand | fastest (cached)   | after hydration          | mostly-static, occasionally stale |
+| **PPR**  | static + streamed | fast (static shell) | progressively, per-region | static frame, dynamic holes      |
+
+The throughline: server strategies (SSR/SSG/ISR/PPR) win **first paint** by
+shipping HTML, then spend a second cost — **hydration** — wiring that HTML up to
+be interactive. CSR skips the HTML and pays everything up front in JS. There is
+no free option; there's only *where you move the wait*.
+
+## Visible is not interactive
+
+The gap most teams miss is the window between "I can see it" and "I can use it."
+Server-rendered HTML paints instantly, but buttons do nothing until hydration
+finishes — a janky, fast-looking-but-dead screen is its own UX failure. This is
+the same territory as <a href="/docs/patterns/loading-states">loading &
+optimistic states</a>: the question isn't only *how fast*, it's *what the user
+can do at each moment*.
+
+<DoDont>
+  <Do title="Match strategy to the page's job">
+    Static-render a marketing page for instant paint; server-render a
+    personalized dashboard; client-render the app behind a login where SEO and
+    first paint don't matter.
+  </Do>
+  <Dont title="Render everything one way because the framework does">
+    Static-generating a per-user feed leaks stale or wrong data; client-rendering
+    a public landing page tanks SEO and first paint. The default is rarely right
+    for every route.
+  </Dont>
+</DoDont>
+
+## Layout shift is part of rendering
+
+Whatever paints first sets the user's expectation. If content arrives in pieces —
+streamed regions, late-loading images, hydration reflows — the layout jumps, and
+a jumping layout reads as broken. Reserve space for what's coming (skeletons
+sized to the real content, fixed image dimensions) so the *visible* step is
+honest about the *interactive* one.
+
+## On the web vs. on native
+
+Rendering strategy is a web concept rooted in the HTML-then-hydrate model. React
+Native has no document to pre-render and no hydration — but the same underlying
+question survives, just renamed.
+
+<PlatformTabs>
+  <Platform label="Web">
+    The screen is HTML first, then JavaScript hydrates it. Your levers are *where*
+    you render (server/build/client) and *how fast* hydration unblocks
+    interaction — streaming and partial pre-rendering let the static frame paint
+    while dynamic regions catch up.
+  </Platform>
+  <Platform label="React Native">
+    There's no SSR or hydration — views render natively on device. The analogous
+    "time to visible / time to interactive" cost moves to **bundle size and
+    startup** (JS parse, first screen mount) and **data fetching** on mount. The
+    UX fix rhymes: render a sized skeleton immediately, stream data in, avoid
+    layout jumps.
+  </Platform>
+</PlatformTabs>
+
+<Callout variant="tip" title="This section, in one line">
+  Rendering is a delivery decision with a UX bill. The rest of this section goes
+  deep on each strategy — the decision rubric, streaming & Suspense, hydration &
+  islands, route-level data fetching, and ISR/PPR — always framed by what the user
+  sees and when they can act.
+</Callout>

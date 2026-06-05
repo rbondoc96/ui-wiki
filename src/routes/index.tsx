@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { ArrowRightIcon, SparkleIcon } from "@phosphor-icons/react"
 
 import type { NavSection } from "#/lib/docs.ts"
-import { navTree } from "#/lib/docs.ts"
+import { librariesWithDocs, navTreeFor } from "#/lib/docs.ts"
 
 export const Route = createFileRoute("/")({ component: Home })
 
@@ -49,39 +49,48 @@ function Home() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-5xl gap-4 pb-24 sm:grid-cols-2">
-        {navTree.map((section) => (
-          <div
-            key={section.title}
-            className="rounded-xl border border-border p-6"
-          >
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="font-heading text-lg font-semibold">
-                {section.title}
-              </h2>
-              {latestUpdate(section) ? (
-                <span className="text-xs text-muted-foreground">
-                  Updated {latestUpdate(section)}
-                </span>
-              ) : null}
-            </div>
-            <ul className="mt-3 flex flex-col gap-1">
-              {section.items.map((doc) => (
-                <li key={doc.slug}>
-                  <Link
-                    to="/docs/$"
-                    params={{ _splat: doc.slug }}
-                    className="group flex items-center justify-between gap-2 rounded-md py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <span>{doc.title}</span>
-                    <ArrowRightIcon className="size-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
-                  </Link>
-                </li>
+      <div className="mx-auto max-w-5xl pb-24">
+        {librariesWithDocs().map((library) => (
+          <section key={library.slug} className="mb-12 last:mb-0">
+            <h2 className="mb-4 font-heading text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+              {library.label}
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {navTreeFor(library.slug).map((section) => (
+                <div
+                  key={section.title}
+                  className="rounded-xl border border-border p-6"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <h3 className="font-heading text-lg font-semibold">
+                      {section.title}
+                    </h3>
+                    {latestUpdate(section) ? (
+                      <span className="text-xs text-muted-foreground">
+                        Updated {latestUpdate(section)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <ul className="mt-3 flex flex-col gap-1">
+                    {section.items.map((doc) => (
+                      <li key={doc.slug}>
+                        <Link
+                          to="/docs/$"
+                          params={{ _splat: doc.slug }}
+                          className="group flex items-center justify-between gap-2 rounded-md py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <span>{doc.title}</span>
+                          <ArrowRightIcon className="size-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
-          </div>
+            </div>
+          </section>
         ))}
-      </section>
+      </div>
     </main>
   )
 }

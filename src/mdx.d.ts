@@ -10,6 +10,7 @@ declare module "*.mdx" {
 
   export interface Frontmatter {
     description?: string
+    library?: string
     order?: number
     section: string
     title: string

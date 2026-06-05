@@ -7,12 +7,13 @@ import {
 } from "@phosphor-icons/react"
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import { allDocs } from "#/lib/docs.ts"
+import { allDocs, libraryLabel } from "#/lib/docs.ts"
 import { cn } from "#/lib/utils.ts"
 
 interface SearchItem {
   keywords: string
   label: string
+  library: string
   section: string
   to: string
   type: "doc" | "heading"
@@ -22,18 +23,21 @@ function buildIndex(): Array<SearchItem> {
   const items: Array<SearchItem> = []
   for (const doc of allDocs()) {
     const to = `/docs/${doc.slug}`
+    const library = libraryLabel(doc.library)
     items.push({
       keywords:
-        `${doc.title} ${doc.section} ${doc.description ?? ""}`.toLowerCase(),
+        `${doc.title} ${doc.section} ${library} ${doc.description ?? ""}`.toLowerCase(),
       label: doc.title,
+      library,
       section: doc.section,
       to,
       type: "doc",
     })
     for (const entry of doc.toc) {
       items.push({
-        keywords: `${doc.title} ${entry.title}`.toLowerCase(),
+        keywords: `${doc.title} ${entry.title} ${library}`.toLowerCase(),
         label: entry.title,
+        library,
         section: doc.title,
         to: `${to}#${entry.id}`,
         type: "heading",
@@ -143,7 +147,10 @@ export function SearchDialog({
                     <HashIcon className="size-4 shrink-0 text-muted-foreground" />
                   )}
                   <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
+                  <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                    <span className="rounded bg-muted px-1.5 py-0.5">
+                      {item.library}
+                    </span>
                     {item.section}
                   </span>
                 </button>

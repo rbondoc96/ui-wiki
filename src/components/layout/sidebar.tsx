@@ -1,9 +1,18 @@
-import { Link } from "@tanstack/react-router"
+import { Link, useLocation } from "@tanstack/react-router"
 
-import { navTree } from "#/lib/docs.ts"
+import { libraryForSlug, navTreeFor } from "#/lib/docs.ts"
 import { cn } from "#/lib/utils.ts"
 
+// Active library is derived from the current `/docs/<slug>` route so the
+// sidebar shows only that library's sections.
+function useActiveLibrary(): string {
+  const { pathname } = useLocation()
+  const slug = pathname.replace(/^\/docs\/?/, "")
+  return libraryForSlug(slug)
+}
+
 export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  const navTree = navTreeFor(useActiveLibrary())
   return (
     <nav className="flex flex-col gap-6">
       {navTree.map((section) => (

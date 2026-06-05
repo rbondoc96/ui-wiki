@@ -1,5 +1,5 @@
 import { Dialog } from "@base-ui/react/dialog"
-import { Link } from "@tanstack/react-router"
+import { Link, useLocation } from "@tanstack/react-router"
 import {
   BookOpenIcon,
   ListIcon,
@@ -11,6 +11,37 @@ import { SearchDialog } from "#/components/search-dialog.tsx"
 import { SidebarNav } from "#/components/layout/sidebar.tsx"
 import { ThemeToggle } from "#/components/theme-toggle.tsx"
 import { Button } from "#/components/ui/button.tsx"
+import { firstDocSlug, librariesWithDocs, libraryForSlug } from "#/lib/docs.ts"
+import { cn } from "#/lib/utils.ts"
+
+function LibrarySwitcher() {
+  const { pathname } = useLocation()
+  const activeLibrary = pathname.startsWith("/docs")
+    ? libraryForSlug(pathname.replace(/^\/docs\/?/, ""))
+    : null
+
+  return (
+    <>
+      {librariesWithDocs().map((library) => {
+        const active = library.slug === activeLibrary
+        return (
+          <Link
+            key={library.slug}
+            to="/docs/$"
+            params={{ _splat: firstDocSlug(library.slug) ?? "" }}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "transition-colors hover:text-foreground",
+              active && "font-medium text-foreground"
+            )}
+          >
+            {library.label}
+          </Link>
+        )
+      })}
+    </>
+  )
+}
 
 export function AppHeader() {
   const [searchOpen, setSearchOpen] = useState(false)
@@ -72,13 +103,7 @@ export function AppHeader() {
           >
             Home
           </Link>
-          <Link
-            to="/docs"
-            className="transition-colors hover:text-foreground"
-            activeProps={{ className: "text-foreground font-medium" }}
-          >
-            Docs
-          </Link>
+          <LibrarySwitcher />
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
