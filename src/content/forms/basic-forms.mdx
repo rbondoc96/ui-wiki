@@ -5,6 +5,8 @@ order: 1
 description: "A form is a conversation. Most form pain isn't the inputs — it's the defaults around them: when you validate, how errors read, and what the submit button does."
 ---
 
+import { ErrorSlotDemo, SubmitButtonDemo, ValidationTimingDemo } from "#/components/docs/forms-examples.tsx"
+
 A form is the most interactive surface most apps have, and the one where small
 defaults decide whether it feels helpful or hostile. The inputs are rarely the
 problem. The problem is the UX *around* them — when validation fires, how errors
@@ -24,11 +26,11 @@ where most form bugs start.
 | **Error slot**  | Reserved space, even when empty, so the layout doesn't jump.   |
 
 <DoDont>
-  <Do title="Reserve the error slot">
+  <Do preview={<ErrorSlotDemo good />} title="Reserve the error slot">
     Lay out the field with room for one line of error text from the start. When
     an error appears, nothing below it moves — the eye stays where it was.
   </Do>
-  <Dont title="Insert errors on the fly">
+  <Dont preview={<ErrorSlotDemo />} title="Insert errors on the fly">
     Injecting an error node pushes every field below it down. The user's target
     moves mid-interaction, and a form that's erroring in several places
     "jitters" as messages come and go.
@@ -59,12 +61,12 @@ That's the rule in one line: **validate on blur, then re-validate on change once
 a field is in an error state, and validate everything on submit.**
 
 <DoDont>
-  <Do title="Wait for blur, then go live">
+  <Do preview={<ValidationTimingDemo good />} title="Wait for blur, then go live">
     Let the user finish typing before the first verdict. Once they've seen an
     error, switch that field to on-change so the message clears the instant
     they've fixed it.
   </Do>
-  <Dont title="Validate every keystroke from the start">
+  <Dont preview={<ValidationTimingDemo />} title="Validate every keystroke from the start">
     Erroring on the first character of an email or password reads as the form
     fighting the user. The message is "wrong" for most of the time it's visible.
   </Dont>
@@ -112,11 +114,11 @@ isn't focusable for screen-reader users, and leaves people clicking a dead
 control with no idea what's missing.
 
 <DoDont>
-  <Do title="Keep submit enabled; validate on press">
+  <Do preview={<SubmitButtonDemo good />} title="Keep submit enabled; validate on press">
     Let the user submit whenever they want. If the form is invalid, run
     validation, show the errors, and move focus to the first failing field.
   </Do>
-  <Dont title="Disable submit until valid">
+  <Dont preview={<SubmitButtonDemo />} title="Disable submit until valid">
     The user can't tell *why* it's disabled, can't tab to it, and gets no
     feedback from clicking. You've hidden the problem instead of explaining it.
   </Dont>
@@ -256,9 +258,12 @@ unchanged. What changes is the shell around the fields.
 
 ## Where to go next
 
-When a form outgrows a single screen — distinct phases, conditional branches, or
-just too many fields — it becomes a [Multi-Step Form](/docs/forms/multi-step-forms),
-which adds per-step validation and state that survives navigation. For the
-controls themselves, see [Select, Dropdown, Listbox &
-Combobox](/docs/components/select-dropdown-listbox-combobox); for the submit
-button's in-flight behavior, [Button Anatomy](/docs/components/button-anatomy).
+Two topics here go deeper: the rules themselves — client vs. server, schemas,
+async and cross-field checks — in [Validation](/docs/forms/validation), and the
+copy those rules produce in [Error Messages](/docs/forms/error-messages). When a
+form outgrows a single screen — distinct phases, conditional branches, or just
+too many fields — it becomes a [Multi-Step
+Form](/docs/forms/multi-step-forms). For the controls themselves, see [Select,
+Dropdown, Listbox & Combobox](/docs/components/select-dropdown-listbox-combobox);
+for the submit button's in-flight behavior, [Button
+Anatomy](/docs/components/button-anatomy).

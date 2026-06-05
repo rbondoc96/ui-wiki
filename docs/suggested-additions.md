@@ -41,26 +41,33 @@ React-loving author will get the most personal use out of when prototyping.
 ## 2. Forms & validation patterns — [Content] ✅ Done
 
 > Shipped as its own **Forms** section (`src/content/forms/`) rather than a
-> single page, since the topic is section-sized and has obvious room to grow
-> (validation deep-dive, error copy, autosave). Initial scope is the two pages
-> reached for most:
+> single page, since the topic is section-sized. Five pages, in reading order:
 >
-> - `basic-forms.mdx` — field anatomy + reserved error slot, the "validate late,
->   re-validate eager" timing rule, error copy, required-vs-optional, the
+> - `basic-forms.mdx` (1) — field anatomy + reserved error slot, the "validate
+>   late, re-validate eager" timing rule, error copy, required-vs-optional, the
 >   disabled-submit anti-pattern, and submission as a state machine.
-> - `multi-step-forms.mdx` — when to split, forward-only step validation, one
+> - `validation.mdx` (2) — client-vs-server, one schema (Zod/Standard Schema)
+>   both sides, field- vs form-level (cross-field), debounced async checks, and
+>   a11y of validation.
+> - `error-messages.mdx` (3) — the three parts of a usable error, tone, where to
+>   surface by scope, no fragment-concatenation/i18n, cause→message→recovery
+>   table, color-isn't-a-message.
+> - `multi-step-forms.mdx` (4) — when to split, forward-only step validation, one
 >   source of truth across steps, honest progress, a review step, and routing
 >   submit-time server errors back to the offending step/field.
+> - `autosave.mdx` (5) — autosave-vs-explicit, debounce + flush, honest save
+>   status, failure/retry, concurrency/conflicts, and local drafts.
 >
 > Code examples anchor on **TanStack Form** (consistent with the TanStack Query
-> usage in `loading-states.mdx`); both pages use `<DoDont>`, `<Callout>`, and
-> `<PlatformTabs>`, with the Web↔RN tabs reserved for where the two genuinely
-> diverge (no `<form>`/`onSubmit` and `KeyboardAvoidingView` on RN; wizard as a
-> nav stack with `AsyncStorage` draft persistence). Section slots between Data
-> and Patterns in the Building Blocks sidebar (items ordered 1–2).
->
-> Still open as future pages in this section: standalone validation patterns,
-> error-copy guidelines, and autosave.
+> usage in `loading-states.mdx`); pages use `<DoDont>`, `<Callout>`, and
+> `<PlatformTabs>`, with Web↔RN tabs reserved for genuine divergence (no
+> `<form>`/`onSubmit` + `KeyboardAvoidingView` on RN; wizard as a nav stack;
+> `localStorage` vs `AsyncStorage`/`AppState` for drafts). Live demos live in
+> `src/components/docs/forms-examples.tsx` and feed `<Do>`/`<Dont>` `preview`
+> slots — `ErrorSlotDemo` (layout-jump), `ValidationTimingDemo`, and
+> `SubmitButtonDemo` on Basic Forms; `WizardDemo` is a standalone working
+> two-step wizard on Multi-Step Forms. Section slots between Data and Patterns in
+> the Building Blocks sidebar.
 
 When to validate (on blur vs submit vs change), inline vs summary errors, error
 copy, required vs optional marking, disabled-submit anti-pattern, async/server

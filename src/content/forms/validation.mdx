@@ -1,0 +1,180 @@
+---
+title: Validation
+section: Forms
+order: 2
+description: "Validation is a contract you enforce twice — once in the browser for speed, once on the server for truth. The browser copy is a courtesy; the server copy is the one that counts."
+---
+
+[Basic Forms](/docs/forms/basic-forms) covered *when* a field validates. This
+page is about the validation itself: where it runs, how to express it once,
+how to handle the rules that span fields or hit the network, and how to make the
+result reach everyone — including screen-reader users. The throughline is that
+client validation is a fast courtesy and server validation is the real gate.
+
+## Validate twice — client for speed, server for truth
+
+Client-side validation exists to give instant feedback and save a round trip.
+It is *not* a security boundary: anyone can bypass the browser. Every rule that
+matters must run again on the server, which is the only place that decides
+whether data is actually accepted.
+
+<DoDont>
+  <Do title="Mirror the rules, trust only the server">
+    Run the same checks client-side for speed, but treat the server's verdict as
+    authoritative. The client guides; the server decides.
+  </Do>
+  <Dont title="Validate only on the client">
+    Client-only validation is trivially skipped (devtools, a direct API call).
+    What reaches your database is then whatever the attacker chose.
+  </Dont>
+</DoDont>
+
+## One schema, both sides
+
+Writing the rules twice guarantees they drift. Define them once as a schema and
+run that same schema on the client for live feedback and on the server before
+you persist. TanStack Form accepts a [Standard
+Schema](https://standardschema.dev) validator directly, so a Zod schema is the
+single source of truth.
+
+```tsx
+import { useForm } from "@tanstack/react-form"
+import { z } from "zod"
+
+// The one definition both the form and the API route validate against.
+export const Signup = z.object({
+  age: z.coerce.number().min(18, "You must be 18 or older"),
+  email: z.string().email("Enter an email like name@example.com"),
+})
+
+function SignupForm() {
+  const form = useForm({
+    defaultValues: { age: "", email: "" },
+    validators: { onChange: Signup }, // live, per-field errors from the schema
+    onSubmit: async ({ value }) => {
+      // Server re-parses with the SAME schema before trusting anything.
+      await fetch("/api/signup", { body: JSON.stringify(value), method: "POST" })
+    },
+  })
+  // …render fields
+}
+```
+
+## Field-level vs form-level rules
+
+Most rules are field-level — this email is malformed, this number is too small.
+But some only make sense across fields: a confirm-password must equal the
+password, an end date must follow a start date, "at least one contact method" is
+required. Those are **form-level**: they validate the object, not a field, and
+attach the error to the field the user should fix.
+
+```tsx
+export const Password = z
+  .object({
+    confirm: z.string(),
+    password: z.string().min(8, "Use at least 8 characters"),
+  })
+  // Cross-field rule: surface it on the field the user can act on.
+  .refine((v) => v.password === v.confirm, {
+    message: "Passwords must match",
+    path: ["confirm"],
+  })
+```
+
+## Async validation needs its own state
+
+Some checks can't be answered locally — is this username taken, does this promo
+code exist. Those are network calls, and treating them like synchronous rules
+makes the form janky. Three things make async validation behave:
+
+- **Debounce it** so you're not firing a request per keystroke.
+- **Show a pending state** on the field — the user should see it's "checking,"
+  not guess from a frozen UI.
+- **Ignore stale responses** so a slow earlier check can't overwrite a newer
+  one. TanStack Form's async validators are sequenced for you; with hand-rolled
+  checks, use an `AbortController`.
+
+```tsx
+<form.Field
+  name="username"
+  validators={{
+    onChangeAsyncDebounceMs: 400,
+    onChangeAsync: async ({ value }) => {
+      if (value.length < 3) return undefined
+      const taken = await isUsernameTaken(value) // network
+      return taken ? "That username is already taken" : undefined
+    },
+  }}
+>
+  {(field) => (
+    <div className="field">
+      <label htmlFor={field.name}>Username</label>
+      <input
+        id={field.name}
+        onChange={(e) => field.handleChange(e.target.value)}
+        value={field.state.value}
+      />
+      {field.state.meta.isValidating ? (
+        <p className="field-hint">Checking availability…</p>
+      ) : (
+        <p className="field-error" role="alert">
+          {field.state.meta.errors[0] ?? " "}
+        </p>
+      )}
+    </div>
+  )}
+</form.Field>
+```
+
+<Callout variant="warning" title="Never block submit on an in-flight check">
+  If an async validator is still running when the user submits, await it — don't
+  silently swallow the submit or let it through unchecked. Disable the button
+  with a pending state while the final validation resolves, then proceed or show
+  the error.
+</Callout>
+
+## Make validation accessible
+
+A red border is invisible to a screen reader and to anyone who can't distinguish
+the color. Wire validation into the accessibility tree:
+
+- Set `aria-invalid` on the input when it's in error.
+- Point `aria-describedby` at the error message's `id` so the message is
+  announced when the field gains focus.
+- Give a dynamically inserted error `role="alert"` (or render it inside an
+  `aria-live` region) so it's announced the moment it appears.
+- On a failed submit, **move focus to the first invalid field**, and for long
+  forms render an error summary whose links jump to each field. See [Focus
+  Management](/docs/accessibility/focus-management).
+
+```tsx
+<input
+  aria-describedby={error ? `${id}-error` : undefined}
+  aria-invalid={Boolean(error)}
+  id={id}
+/>
+<p id={`${id}-error`} role="alert">{error}</p>
+```
+
+## Don't let validation thrash
+
+Validation runs often — guard the expensive parts. Debounce network checks,
+keep synchronous validators cheap (a regex, a length check), and lean on the
+per-field timing rule from Basic Forms so untouched fields stay quiet. A schema
+that re-parses the whole form on every keystroke is fine when it's pure
+computation; it is not fine when a `.refine()` calls an API.
+
+<Callout variant="tip" title="Validation is logic — it's already cross-platform">
+  Schemas and validators are pure functions, so the rules on this page run
+  unchanged in React Native; TanStack Form's core is renderer-agnostic. Only the
+  *surfacing* differs — `aria-invalid`/`role="alert"` on web vs.
+  `accessibilityState`/`AccessibilityInfo.announceForAccessibility` on RN, as
+  covered in [Basic Forms](/docs/forms/basic-forms).
+</Callout>
+
+## Where to go next
+
+Validation produces messages — make them useful in [Error
+Messages](/docs/forms/error-messages). When a form spans several steps, each
+step validates on the same rules before advancing; see [Multi-Step
+Forms](/docs/forms/multi-step-forms).

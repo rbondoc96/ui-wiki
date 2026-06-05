@@ -1,9 +1,11 @@
 ---
 title: Multi-Step Forms
 section: Forms
-order: 2
+order: 4
 description: Splitting a form into steps trades one long page for a guided sequence. The hard parts aren't the steps — they're the state that survives navigation and the errors that arrive at the wrong moment.
 ---
+
+import { WizardDemo } from "#/components/docs/forms-examples.tsx"
 
 A multi-step form (a "wizard") breaks a large task into a guided sequence. Done
 well, it lowers the perceived effort of a long form and lets you branch on
@@ -79,6 +81,12 @@ a "Step 2 of 4" label both work; what matters is that the count is truthful.
 For anything consequential — a purchase, an application — the last step before
 submit should summarize everything entered, with a way to jump back and edit each
 section. The user commits once, at the end, seeing the whole picture.
+
+Here's the whole shape in miniature: Next validates only the current step before
+advancing, Back is always available and never discards what you typed, and the
+progress is honest about how many steps remain.
+
+<WizardDemo />
 
 ## Errors arrive at the wrong step
 
@@ -216,4 +224,5 @@ reserved error slots, enabled submit, server-error mapping — still applies ins
 each step. For the submit and Next buttons' pending behavior, see [Button
 Anatomy](/docs/components/button-anatomy); for confirming a successful submit
 without stealing focus, [Loading & Optimistic
-States](/docs/patterns/loading-states).
+States](/docs/patterns/loading-states); and for persisting a long flow's draft
+across interruptions, [Autosave](/docs/forms/autosave).

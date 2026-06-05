@@ -1,0 +1,115 @@
+---
+title: Error Messages
+section: Forms
+order: 3
+description: "An error message has one job: get the user unstuck. That means naming what happened, in plain language, in the place they can act on it — never blaming the person reading it."
+---
+
+By the time an error message renders, something has already gone wrong. The
+message's only job is to get the user moving again. Most error copy fails at
+this — it states that something is invalid without saying what or how to fix it,
+it blames the user, or it appears somewhere far from the field that caused it.
+This page is the copy-and-placement companion to [Validation](/docs/forms/validation).
+
+## The three parts of a usable error
+
+A good error answers, in order: what happened, (sometimes) why, and what to do
+about it. The fix is the part most messages omit, and it's the one the user
+actually needs.
+
+| Instead of…             | Write…                                              | Because…                          |
+| ----------------------- | --------------------------------------------------- | --------------------------------- |
+| "Invalid input"         | "Enter an email like name@example.com"              | Shows the shape, not just a verdict |
+| "Password error"        | "Use at least 8 characters, including a number"     | Names the rule they missed         |
+| "Field required"        | "Add a billing ZIP so we can verify your card"      | Gives the reason, so it feels fair |
+| "Request failed"        | "We couldn't save — check your connection and retry" | Names a recovery action            |
+
+## Blame the system, not the user
+
+The user is not an idiot for typing the wrong thing; your form asked
+ambiguously. Write errors that take responsibility and stay calm.
+
+<DoDont>
+  <Do title="Plain, neutral, actionable">
+    "That email is already registered — try signing in instead." It states the
+    situation and offers the next move, in the same voice as the rest of the UI.
+  </Do>
+  <Dont title="Accusatory, jargon, or shouting">
+    "ERROR: invalid value" / "You entered an illegal character." All-caps, codes,
+    and "illegal/invalid you" read as the form scolding the person using it.
+  </Dont>
+</DoDont>
+
+## Put the message where the fix is
+
+Where an error appears should match its scope. A field problem belongs at the
+field; a form-wide problem belongs at the form; a transient system problem
+belongs somewhere ambient.
+
+| Scope                              | Surface          | Why                                       |
+| ---------------------------------- | ---------------- | ----------------------------------------- |
+| One field is wrong                 | Inline, at the field | The fix is right there                |
+| Several fields failed on submit    | Summary at top, linking to each | One place to triage from   |
+| The whole submit failed (server)   | Banner on the form | It's not any one field's fault          |
+| A background action failed         | Toast / status   | Non-blocking, doesn't hijack the form     |
+
+For a long form, pair inline errors with a **summary** the user lands on after a
+failed submit — a heading plus links that jump to each failing field — so they
+never scroll hunting for the reds.
+
+## Don't build sentences from fragments
+
+It's tempting to template errors as `field + " is invalid"`. It produces
+robotic copy ("Email Address is invalid"), and it's untranslatable — other
+languages don't slot a noun into an English frame. Write **whole sentences**,
+one per case, and pluralize properly.
+
+<DoDont>
+  <Do title="Full strings, per case and per locale">
+    Keep "Enter a valid email address" and "Choose a delivery date in the future"
+    as complete messages. Use a real pluralization API for counts ("1 item" vs
+    "3 items").
+  </Do>
+  <Dont title="Concatenate fragments">
+    `label + " " + rule` ("Date is must be after start") can't be translated and
+    reads like a machine. The grammar breaks the moment the locale changes.
+  </Dont>
+</DoDont>
+
+## Match the message to the failure
+
+Not every failure is the user's input. Distinguish the causes — the right
+message and the right recovery differ.
+
+| Cause                  | What to say                                          | Recovery                     |
+| ---------------------- | ---------------------------------------------------- | ---------------------------- |
+| Validation (bad input) | The specific rule + how to satisfy it                | User edits the field         |
+| Network / offline      | "We couldn't reach the server — check your connection" | Retry, ideally automatic   |
+| Server (500)           | "Something went wrong on our end — we're looking into it" | Retry later; don't blame them |
+| Permission (403)       | "You don't have access to do this"                   | Offer who to ask / sign in   |
+| Conflict (409)         | "This changed since you opened it — review and resave" | Show the diff / reload      |
+
+## Make errors perceivable
+
+Color alone is not a message. Roughly 1 in 12 men can't reliably distinguish
+red, and no screen reader announces a border.
+
+<DoDont>
+  <Do title="Icon + text + programmatic association">
+    Pair the red with an icon and words, set `aria-invalid` on the input, and
+    link the message via `aria-describedby`. Give late-appearing errors
+    `role="alert"` so they're announced.
+  </Do>
+  <Dont title="Color as the only signal">
+    A field that turns red with no text and no ARIA tells a sighted, color-typical
+    user "something's off" and tells everyone else nothing at all.
+  </Dont>
+</DoDont>
+
+## Where to go next
+
+These messages come out of [Validation](/docs/forms/validation), which decides
+when and where they fire. For non-blocking confirmations and failures around a
+submit, see [Loading & Optimistic States](/docs/patterns/loading-states); for
+focusing the first error and building an error summary, [Focus
+Management](/docs/accessibility/focus-management).

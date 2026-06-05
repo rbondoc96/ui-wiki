@@ -1,0 +1,155 @@
+---
+title: Autosave
+section: Forms
+order: 5
+description: "Autosave removes the save button, and with it the user's certainty about when their work is safe. You earn that trust back with visible status, honest failure handling, and a draft they can return to."
+---
+
+Autosave is a promise: "stop worrying about losing this." It's the right default
+for documents, settings, and long forms where an explicit save is friction. But
+removing the save button also removes the user's mental model of when their work
+is committed — so the entire job of an autosave system is to make that
+invisible state legible and trustworthy. Get the status, the failures, and the
+draft right, or autosave quietly loses people's work.
+
+## Autosave or explicit save?
+
+Autosave fits low-stakes, continuous edits. It's wrong for actions with
+consequences, where the user should deliberately commit.
+
+<DoDont>
+  <Do title="Autosave continuous, low-stakes edits">
+    A note, a profile, a draft post, a settings panel — anywhere "I'll just keep
+    typing" is the expected flow and losing input is the real risk.
+  </Do>
+  <Dont title="Autosave consequential or destructive actions">
+    Payments, sending, publishing, irreversible deletes — these need an explicit,
+    intentional press. Silently committing them is how you charge a card twice.
+  </Dont>
+</DoDont>
+
+## Debounce the writes
+
+Saving on every keystroke hammers the server and races itself. Save after the
+user **pauses**, flush on the moments that matter, and cap how long you'll wait
+during a long uninterrupted edit.
+
+- **Debounce** ~500–1000ms after the last change.
+- **Flush immediately** on blur, on navigation away, and on tab/visibility
+  change — don't let a debounce timer swallow the last edit.
+- **Skip no-op saves** — if nothing changed since the last successful save,
+  don't write.
+
+```tsx
+import { useMutation } from "@tanstack/react-query"
+import { useEffect } from "react"
+
+function useAutosave(values: Draft) {
+  const save = useMutation({ mutationFn: saveDraft })
+
+  useEffect(() => {
+    const id = setTimeout(() => save.mutate(values), 800) // debounce
+    return () => clearTimeout(id) // newer edit cancels the pending save
+  }, [values])
+
+  return save // save.status drives the indicator below
+}
+```
+
+## Always show save status
+
+The user gave up the save button; give them a status in return. Surface idle →
+saving → saved → failed, and never claim "Saved" before the request resolves.
+
+<DoDont>
+  <Do title="Reflect the real state, including failure">
+    Show "Saving…", then "Saved" only after the server confirms, and "Couldn't
+    save" with a retry when it fails. Announce changes via an `aria-live="polite"`
+    region so it's perceivable without sight.
+  </Do>
+  <Dont title="Show an optimistic 'Saved' that might be a lie">
+    Flipping to "Saved" the instant the user stops typing — before the network
+    answers — tells them their work is safe when it may have just failed.
+  </Dont>
+</DoDont>
+
+```tsx
+const label = {
+  error: "Couldn't save — retry",
+  idle: "All changes saved",
+  pending: "Saving…",
+  success: "Saved",
+}[save.status]
+
+<span aria-live="polite" role="status">{label}</span>
+```
+
+## Handle the unhappy path
+
+The network will fail mid-edit. When it does, **keep the user's input** (it's
+still in state and in the local draft), retry with backoff, and surface a quiet
+"Couldn't save" rather than a blocking error. Don't clear the dirty state until a
+save actually succeeds — otherwise a failed save looks identical to a successful
+one.
+
+## Concurrency and conflicts
+
+The same record open in two tabs or on two devices means saves can collide. Pick
+a strategy and tell the user when it triggers:
+
+- **Last-write-wins** — simplest; acceptable for personal, single-user drafts.
+- **Optimistic concurrency** — send a version token; the server rejects a stale
+  write with `409`, and you prompt the user to review and resave (see the
+  conflict row in [Error Messages](/docs/forms/error-messages)).
+- **Merge** — for true collaboration; expensive, usually CRDT/OT territory and
+  beyond a typical form.
+
+## Keep a local draft
+
+A server autosave still loses work to a crash before the first save lands. Mirror
+the in-progress value to local storage so a reopened form restores instead of
+starting blank, and clear it once the work is durably submitted. This is the same
+draft mechanism a long [Multi-Step Form](/docs/forms/multi-step-forms) uses to
+survive an interruption.
+
+## Cross-platform: same loop, different durability hooks
+
+The debounce-save-status loop is identical; what differs is where you persist
+the draft and which lifecycle event means "flush now."
+
+<PlatformTabs>
+  <Platform label="Web">
+    Mirror to `localStorage` (or IndexedDB for large drafts), and flush on
+    `visibilitychange`/`beforeunload` so a closed tab doesn't drop the last edit.
+
+    ```tsx
+    useEffect(() => {
+      localStorage.setItem("draft", JSON.stringify(values))
+      const flush = () => save.flush()
+      window.addEventListener("visibilitychange", flush)
+      return () => window.removeEventListener("visibilitychange", flush)
+    }, [values])
+    ```
+  </Platform>
+  <Platform label="React Native">
+    There's no `beforeunload`. Persist to `AsyncStorage`, and flush when the app
+    backgrounds via `AppState` — the moment the OS may suspend or kill you.
+
+    ```tsx
+    useEffect(() => {
+      AsyncStorage.setItem("draft", JSON.stringify(values))
+      const sub = AppState.addEventListener("change", (state) => {
+        if (state === "background") save.flush()
+      })
+      return () => sub.remove()
+    }, [values])
+    ```
+  </Platform>
+</PlatformTabs>
+
+## Where to go next
+
+Autosave status is a [Loading & Optimistic State](/docs/patterns/loading-states)
+— the same honesty about pending vs. confirmed applies. For the conflict and
+network-failure copy, see [Error Messages](/docs/forms/error-messages); for draft
+persistence across steps, [Multi-Step Forms](/docs/forms/multi-step-forms).
