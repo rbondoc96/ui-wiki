@@ -1,0 +1,108 @@
+---
+title: URL as state
+section: Routing & Navigation
+library: app-screens
+order: 15
+description: Which state belongs in the URL and which doesn't. Filters, sort, the selected item, and the active tab make a screen shareable, refreshable, and back-button-able when they live in the address bar.
+---
+
+import { UrlStateDemo } from "#/components/docs/url-state-examples.tsx"
+
+The URL is the one piece of state that's shareable, refreshable, and bookmarkable
+for free. State you keep only in a component dies on reload and can't be linked
+to; state you put in the URL survives all three and costs almost nothing. The
+recurring mistake is trapping view state, the active filter, the sort, the
+selected row, in `useState` where no one else can reach it.
+
+<UrlStateDemo />
+
+## The test for what belongs in the URL
+
+One question decides it: **should reloading or sharing the page bring this back?**
+
+| Put in the URL                         | Keep in local state                       |
+| -------------------------------------- | ----------------------------------------- |
+| Active filter, sort, pagination        | Hover, focus, transient highlights        |
+| The selected item (master-detail)      | Whether a tooltip or menu is open         |
+| Active tab or view mode                | A pane open/closed for this session only  |
+| Search query                           | Unsubmitted, in-progress form input       |
+
+If a teammate pastes the link into Slack, they should land on the same view you
+were looking at. Anything that fails that test is ephemeral and stays local. The
+demo above draws the line: tab, status, and search ride in the address bar and
+survive a reload; the preview pane is local and resets.
+
+## Why it pays off
+
+Putting view state in the URL hands you four things at once, none of which you
+have to build: **deep links** (paste a filtered view into chat), **refresh
+safety** (reload lands in place), **working back/forward** (each meaningful view
+is a history entry), and **server-renderable state** (the server reads the same
+params the client does, so the first paint is already correct).
+
+<DoDont>
+  <Do title="Read view state from the URL">
+    Make the URL the source of truth for filters, sort, selection, and tab.
+    Components derive their view from the current params, so a shared link or a
+    reload reconstructs the screen exactly.
+  </Do>
+  <Dont title="Trap shareable state in useState">
+    A filtered, sorted view that only exists in component state can't be linked,
+    survives no reload, and breaks the back button. The user did real work to
+    reach that view; don't make it unshareable and disposable.
+  </Dont>
+</DoDont>
+
+## Path params vs. search params
+
+Both are "the URL," but they carry different things.
+
+- **Path params** identify _what you're looking at_: the resource. The selected
+  item in a <a href="/docs/app-screens/layouts/master-detail">master-detail</a>
+  view is a path segment, `/projects/42`, because it names a thing.
+- **Search params** describe _how you're looking at it_: the view applied to a
+  collection. Filters, sort, page, and query go in the query string,
+  `/projects?status=open&sort=recent`, because they're modifiers, not identity.
+
+A useful rule: if removing it would change _which_ record is shown, it's a path
+param; if it only changes _how the set_ is shown, it's a search param.
+
+<Callout variant="warning" title="Don't flood history on every keystroke">
+  Typing in a search box shouldn't push a new history entry per character, or the
+  back button has to walk back through "d", "de", "des"… Debounce the write, and
+  use a **replace** (swap the current entry) for in-progress typing, reserving a
+  **push** (new entry) for committed navigations like opening an item.
+</Callout>
+
+## Web vs. native
+
+Both platforms have a URL model; the APIs and the "URL" differ.
+
+<PlatformTabs>
+  <Platform label="Web">
+    The address bar is the literal source of truth. Read and write it through
+    your router's typed search params (TanStack Router's `validateSearch`,
+    React Router's `useSearchParams`) rather than parsing `window.location`
+    yourself, so the params are validated and type-safe. Choose `push` vs.
+    `replace` deliberately to keep the back stack meaningful.
+  </Platform>
+  <Platform label="React Native">
+    There's no address bar, but the same idea lives in route params and a deep
+    link config. Expo Router and React Navigation map a URL scheme
+    (`myapp://projects/42?status=open`) to screens and params, so push
+    notifications, universal links, and "share this view" resolve to the right
+    screen with the right state. Design the linking config as deliberately as
+    you'd design web routes.
+  </Platform>
+</PlatformTabs>
+
+This is the connective tissue under <a href="/docs/app-screens/navigation/nav-pattern-picker">navigation</a>
+and <a href="/docs/app-screens/layouts/master-detail">master-detail</a>: the nav
+chrome moves you between URLs, and the URL restores the exact view when you
+arrive.
+
+<Callout variant="tip" title="This page, in one line">
+  If reloading or sharing the page should restore it, it belongs in the URL;
+  resource identity goes in the path, view modifiers go in search params, and
+  ephemeral UI stays local.
+</Callout>

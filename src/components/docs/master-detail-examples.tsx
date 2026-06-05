@@ -4,6 +4,7 @@ import { useState } from "react"
 import {
   Bar,
   DiagramFrame,
+  PhoneFrame,
   Region,
   ShellFrame,
 } from "#/components/docs/shell.tsx"
@@ -173,7 +174,7 @@ export function MasterDetail() {
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 justify-center bg-muted/20 p-4">
-          <div className="flex w-60 flex-col overflow-hidden rounded-lg border border-border bg-card">
+          <PhoneFrame>
             {showDetail ? (
               <>
                 <header className="flex items-center gap-1 border-b border-border px-2 py-2">
@@ -210,7 +211,7 @@ export function MasterDetail() {
                 </div>
               </>
             )}
-          </div>
+          </PhoneFrame>
         </div>
       )}
     </ShellFrame>

@@ -93,3 +93,31 @@ export function Region({
 export function Bar({ w = "w-full" }: { w?: string }) {
   return <span className={cn("h-1.5 rounded-full bg-muted-foreground/20", w)} />
 }
+
+// A narrow device frame for showing a layout's single-pane phone form, with a
+// home-indicator pill so it reads as a handset. Center it on a surface (e.g.
+// inside a `ShellFrame`) for the "shown on a phone" look; it stretches to the
+// available height so inner regions can scroll.
+export function PhoneFrame({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <div
+      className={cn(
+        "flex w-60 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
+        className
+      )}
+    >
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {children}
+      </div>
+      <div className="flex justify-center py-1.5">
+        <span className="h-1 w-16 rounded-full bg-muted-foreground/30" />
+      </div>
+    </div>
+  )
+}

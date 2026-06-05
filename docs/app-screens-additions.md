@@ -23,14 +23,14 @@ that, so all unchecked.
 | ---- | --- | -------------------- | ------------------------------------------ | ------- | ---------------------------------------------------------- |
 | ☐    | 1   | Rendering & Delivery | Rendering strategy decision rubric         | Content | The page you'll point teammates at on every new project    |
 | ✅   | 2   | Routing & Navigation | Nav pattern picker: tab vs sidebar vs top  | Content | The recurring "where does navigation live" decision        |
-| ☐    | 3   | Routing & Navigation | URL as state, search params & deep linking | Content | Most-skipped, most-gotten-wrong; shared web/RN concern      |
+| ✅   | 3   | Routing & Navigation | URL as state, search params & deep linking | Content | Most-skipped, most-gotten-wrong; shared web/RN concern      |
 | ✅   | 4   | Layouts & Archetypes | App shell & layout composition             | Content | The frame every other screen hangs inside                   |
 | ☐    | 5   | Routing & Navigation | Web vs RN navigation models                | Content | Where the two stacks diverge hardest — pure cross-platform   |
 | ☐    | 6   | Rendering & Delivery | Streaming SSR & Suspense                   | Content | The modern default; ties straight into loading states       |
-| ☐    | 7   | Layouts & Archetypes | Dashboard layout & information density     | Content | High-recurrence admin work; pairs with Data tables          |
+| ✅   | 7   | Layouts & Archetypes | Dashboard layout & information density     | Content | High-recurrence admin work; pairs with Data tables          |
 | ☐    | 8   | Rendering & Delivery | Hydration, islands & partial hydration     | Content | Explains the TTI/"why isn't it clickable" mystery           |
 | ☐    | 9   | Routing & Navigation | Route architecture & code-splitting        | Content | Sets up everything else in this section                     |
-| ☐    | 10  | All                  | Scale-map landing for the library          | Feature | Orients readers; cheap; makes the macro/micro split legible |
+| ✅   | 10  | All                  | Scale-map landing for the library          | Feature | Orients readers; cheap; makes the macro/micro split legible |
 | ☐    | 11  | Rendering & Delivery | Data fetching & caching at the route level | Content | Loaders/RSC/Query — the actual day-job decision             |
 | ☐    | 12  | Layouts & Archetypes | Landing / marketing page anatomy           | Content | Different rules from app UI; you build these too            |
 | ☐    | 13  | Routing & Navigation | Breadcrumbs & wayfinding                    | Content | Small page, clears up a recurring "do I need these"         |
@@ -126,7 +126,12 @@ vs. "11 tabs hiding a tree."
 clearest places to put web and RN side by side — the same app answers it
 differently per platform.
 
-## 3. URL as state, search params & deep linking — [Content]
+## 3. URL as state, search params & deep linking — [Content] ✅ Done
+
+> Shipped as `app-screens/navigation/url-as-state.mdx` with a live `UrlStateDemo`
+> (a faux browser whose address bar tracks URL-backed controls and survives a
+> reload, while the local toggle resets). Covers path vs. search params and the
+> debounce/replace-vs-push gotcha.
 
 Treat the URL as serializable app state: filters, tabs, pagination, selected
 item all in search params so views are shareable, back-button-correct, and
@@ -195,7 +200,11 @@ sticky/safe-area concerns. Sets up the responsive variant in #14.
 defining it early makes the dashboard, master-detail, and responsive pages
 concrete instead of abstract. Highest-reach layout page.
 
-## 7. Dashboard layout & information density — [Content]
+## 7. Dashboard layout & information density — [Content] ✅ Done
+
+> Shipped as `app-screens/layouts/dashboard-layout.mdx` with a live
+> `DashboardDensity` (a comfortable/compact toggle on the same dashboard) and a
+> `<DoDont>` plus warning callout aimed squarely at the metric-card-grid cliché.
 
 Grid systems for dashboards, card vs. region composition, visual hierarchy when
 everything competes for attention, density as a deliberate trade (echoing the
@@ -258,7 +267,12 @@ lower only because it's narrower than the core layout archetypes.
 
 # Library-wide tooling
 
-## 10. Scale-map landing for the library — [Feature]
+## 10. Scale-map landing for the library — [Feature] ✅ Done
+
+> Shipped as `app-screens/index.mdx` (slug `/docs/app-screens`, an "Overview"
+> section that sorts first) with a `ScaleMap` visual laying the sections out as a
+> top-down scale ladder and handing off to Building Blocks. It's now the
+> library's first page, so the header switcher lands here.
 
 A short index page (or visual) placing every section on the
 macro→micro spectrum: App & Screens at the top (delivery → routing → layout),

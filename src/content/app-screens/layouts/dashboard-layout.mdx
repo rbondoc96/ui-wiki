@@ -1,0 +1,87 @@
+---
+title: Dashboard layout
+section: Layouts & Archetypes
+library: app-screens
+order: 35
+description: The summary-and-drill-down screen, where the real design problem is information density — fitting enough to be useful without tipping into noise, tuned to how expert and frequent the reader is.
+---
+
+import { DashboardDensity } from "#/components/docs/dashboard-examples.tsx"
+
+A dashboard answers "how are things, at a glance?" and then lets the reader drill
+into the parts that need attention. The layout is the easy half. The hard half is
+**information density**: fitting enough signal to be useful without crossing into
+a wall of numbers nobody reads. Density isn't a fixed setting; it's tuned to how
+expert the reader is and how often they look.
+
+<DashboardDensity />
+
+## Reading order and zones
+
+Scanning runs top-left first, so the layout should too. A dashboard usually
+stacks the same zones in priority order:
+
+1. **Global controls** — date range, filters, the scope everything below obeys.
+2. **Summary** — a small row of the few numbers that matter, with a trend so a
+   value means something (47 is meaningless; "47, down 3%" isn't).
+3. **Primary view** — the one chart or table the screen exists for, given the
+   most room.
+4. **Detail** — the breakdown you drill into, often a table that links onward.
+
+The most important thing goes top-left and largest. Everything else earns its
+place by being looked at, not by being available.
+
+## Density is a function of the reader
+
+The comfortable/compact toggle above isn't cosmetic. The right density depends on
+who's reading and how often:
+
+- **Expert, all-day tools** (trading, ops, observability) want **dense**: more
+  rows per screen, tight spacing, tabular numbers. The user has the context to
+  read it and the frequency to value fitting more in view.
+- **Occasional, broad-audience dashboards** want **airy**: fewer numbers, more
+  whitespace, stronger hierarchy, so an infrequent reader isn't overwhelmed.
+
+Density is a dial you set for the audience, not a default you inherit from a
+component library.
+
+<DoDont>
+  <Do title="A scannable summary, then drill on demand">
+    Show the few numbers that drive a decision, each with a trend, and link into
+    the detail. The screen should answer "anything wrong?" in one glance and let
+    the reader pursue only what is.
+  </Do>
+  <Dont title="Twelve identical stat cards, everything at once">
+    A grid of same-sized metric cards with no hierarchy forces the reader to
+    weigh every number equally, which means weighing none. More tiles is not more
+    insight; it's more to ignore.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="Resist the metric-card reflex">
+  The default dashboard, a row of big gradient numbers over a grid of identical
+  cards, looks like a dashboard without doing a dashboard's job. Lead with the
+  one view that drives the decision, give numbers a trend or comparison so
+  they carry meaning, and let everything else be smaller. A number with nothing
+  to compare against is decoration.
+</Callout>
+
+## Don't ship a wall
+
+The failure mode is showing everything because you can. Fight it with hierarchy
+and defaults: a sensible default date range and filter set so the screen opens
+useful, progressive disclosure so detail is a click away rather than always
+present, and size as signal so the important view is visibly bigger. A dashboard
+that shows everything equally has made no decisions for the reader, which is the
+one job it had.
+
+This is the whole-screen scale of <a href="/docs/data/tables-vs-lists">choosing a
+data shape</a> and <a href="/docs/data/data-tables">data tables</a>; the detail
+zone is usually a table, and drilling from a summary row into its record is a
+<a href="/docs/app-screens/layouts/master-detail">master-detail</a> move.
+
+<Callout variant="tip" title="This archetype, in one line">
+  Summarize the few things that matter top-left, give numbers a trend so they
+  mean something, let the reader drill into the rest, and set density to match
+  how expert and frequent the audience is.
+</Callout>

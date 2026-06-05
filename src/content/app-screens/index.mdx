@@ -1,0 +1,41 @@
+---
+title: Overview
+section: Overview
+library: app-screens
+order: 0
+description: The macro half of the wiki — how a whole app or screen is built, delivered, navigated, and composed. Read top-down by scale, from the whole app to a single screen.
+---
+
+import { ScaleMap } from "#/components/docs/scale-map.tsx"
+
+**App & Screens** is the macro half of this wiki: everything above the component
+scale, about how a whole app or screen is built, delivered, navigated, and laid
+out. Its counterpart, **Building Blocks**, is the micro half: the primitives,
+components, data shapes, and patterns a screen is assembled from. This library
+reads top-down by scale.
+
+<ScaleMap />
+
+## The sections, by scale
+
+- **Rendering & Delivery** — when a screen becomes visible and when it becomes
+  interactive. The rendering choice is really a UX choice about who waits.
+- **Routing & Navigation** — where navigation chrome lives, and where view state
+  lives so that links, reloads, and the back button all restore the right view.
+  This is where web and native diverge hardest.
+- **Layouts & Archetypes** — how a single screen is composed: the app shell and
+  the recurring whole-screen shapes (master-detail, the nav-rail + triptych,
+  dashboards) that most app screens are variations of.
+
+## Why split macro from micro
+
+The same word, "design," covers two very different scales. Picking a rendering
+strategy or folding a triptych onto a phone is a different kind of decision from
+choosing a button's disabled state or a table's alignment. Keeping the macro
+half here and the micro half in <a href="/docs/foundations">Building Blocks</a>
+makes that split legible, so a page is about a whole screen or a single
+component, never an uneasy mix of both.
+
+<Callout variant="tip" title="Tip">
+  Hit <kbd>⌘K</kbd> anywhere to jump straight to a page or heading.
+</Callout>
