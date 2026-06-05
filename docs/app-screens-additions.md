@@ -26,19 +26,19 @@ that, so all unchecked.
 | ✅   | 3   | Routing & Navigation | URL as state, search params & deep linking | Content | Most-skipped, most-gotten-wrong; shared web/RN concern      |
 | ✅   | 4   | Layouts & Archetypes | App shell & layout composition             | Content | The frame every other screen hangs inside                   |
 | ✅   | 5   | Routing & Navigation | Web vs RN navigation models                | Content | Where the two stacks diverge hardest — pure cross-platform   |
-| ☐    | 6   | Rendering & Delivery | Streaming SSR & Suspense                   | Content | The modern default; ties straight into loading states       |
+| ✅   | 6   | Rendering & Delivery | Streaming SSR & Suspense                   | Content | The modern default; ties straight into loading states       |
 | ✅   | 7   | Layouts & Archetypes | Dashboard layout & information density     | Content | High-recurrence admin work; pairs with Data tables          |
 | ☐    | 8   | Rendering & Delivery | Hydration, islands & partial hydration     | Content | Explains the TTI/"why isn't it clickable" mystery           |
 | ☐    | 9   | Routing & Navigation | Route architecture & code-splitting        | Content | Sets up everything else in this section                     |
 | ✅   | 10  | All                  | Scale-map landing for the library          | Feature | Orients readers; cheap; makes the macro/micro split legible |
-| ☐    | 11  | Rendering & Delivery | Data fetching & caching at the route level | Content | Loaders/RSC/Query — the actual day-job decision             |
+| ✅   | 11  | Rendering & Delivery | Data fetching & caching at the route level | Content | Loaders/RSC/Query — the actual day-job decision             |
 | ✅   | 12  | Layouts & Archetypes | Landing / marketing page anatomy           | Content | Different rules from app UI; you build these too            |
-| ☐    | 13  | Routing & Navigation | Breadcrumbs & wayfinding                    | Content | Small page, clears up a recurring "do I need these"         |
+| ✅   | 13  | Routing & Navigation | Breadcrumbs & wayfinding                    | Content | Small page, clears up a recurring "do I need these"         |
 | ✅   | 14  | Layouts & Archetypes | Responsive app-shell behavior              | Content | Where shell meets RN/responsive — the adaptive shell        |
 | ✅   | 15  | Layouts & Archetypes | Master-detail / multi-pane layouts         | Content | The list+detail archetype, and how it folds on mobile       |
 | ☐    | 16  | Rendering & Delivery | ISR & partial pre-rendering (PPR)          | Content | The "mostly static, partly dynamic" middle ground           |
 | ☐    | 17  | Layouts & Archetypes | Empty & first-run dashboards               | Content | Extends Empty States up to the whole-screen scale           |
-| ☐    | 18  | All                  | Diagram component for delivery timelines   | Feature | Rendering/hydration are visual; a reusable diagram block helps |
+| ✅   | 18  | All                  | Diagram component for delivery timelines   | Feature | Rendering/hydration are visual; a reusable diagram block helps |
 
 ---
 
@@ -61,7 +61,11 @@ content freshness, personalization, SEO, and scale.
 one page you'll reopen at the start of every project and link teammates to. Sets
 the vocabulary the rest of the section reuses.
 
-## 6. Streaming SSR & Suspense — [Content]
+## 6. Streaming SSR & Suspense — [Content] ✅ Done
+
+> Shipped as `app-screens/rendering/streaming-ssr.mdx` with blocking-vs-streaming
+> `Timeline` diagrams, a `<DoDont>` on boundary placement, and a warning that one
+> boundary around everything is just blocking with extra steps.
 
 Stream HTML as it's ready, flush the shell first, let slow data arrive in its
 own Suspense boundary. Where boundaries go, what to show inside them (this is
@@ -83,7 +87,11 @@ window and how it confuses users into rage-clicking.
 bug, and gives the engineering reason behind a UX symptom — exactly this wiki's
 angle.
 
-## 11. Data fetching & caching at the route level — [Content]
+## 11. Data fetching & caching at the route level — [Content] ✅ Done
+
+> Shipped as `app-screens/rendering/data-fetching.mdx` with a loader/RSC/client
+> table and waterfall-vs-parallel `Timeline` diagrams, plus prefetch-on-intent
+> and a cache/invalidation callout.
 
 Where data loads relative to the route: route loaders (TanStack Router / React
 Router), RSC fetches, or client-side TanStack Query. Waterfalls vs. parallel
@@ -171,7 +179,11 @@ relate, and where this meets the app shell (#4).
 **Why:** Foundational plumbing the rest of the section assumes, but lower in the
 ranking because it's reference-on-demand rather than a decision you sweat often.
 
-## 13. Breadcrumbs & wayfinding — [Content]
+## 13. Breadcrumbs & wayfinding — [Content] ✅ Done
+
+> Shipped as `app-screens/navigation/breadcrumbs.mdx` with a `BreadcrumbsDemo`
+> (collapsed-middle trail, current crumb as plain text) and the key distinction:
+> breadcrumbs show position, not history.
 
 When breadcrumbs earn their space (deep hierarchies, not flat apps), reflecting
 route hierarchy vs. navigation history, truncation on small screens, and the
@@ -298,7 +310,11 @@ two-library split legible the moment someone lands.
 libraries — readers need to know which half they're in. Pure plumbing, high
 clarity-per-effort.
 
-## 18. Diagram component for delivery timelines — [Feature]
+## 18. Diagram component for delivery timelines — [Feature] ✅ Done
+
+> Shipped as `components/docs/timeline.tsx` — a reusable `<Timeline>` of
+> proportional segment lanes with milestone markers (visible/interactive/render).
+> In use on the streaming and data-fetching pages.
 
 A small reusable MDX block for sequence/timeline diagrams — request → server
 render → stream → hydrate → interactive — so rendering and hydration pages can

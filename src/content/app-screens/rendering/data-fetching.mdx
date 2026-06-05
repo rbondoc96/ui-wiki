@@ -1,0 +1,118 @@
+---
+title: Route-level data fetching
+section: Rendering & Delivery
+library: app-screens
+order: 10
+description: 'Where data loads relative to the route — a loader, a server component, or the client — and the one decision that dominates perceived speed: fetching in parallel instead of in a waterfall.'
+---
+
+import { Timeline } from "#/components/docs/timeline.tsx"
+
+Once you've picked a <a href="/docs/app-screens/rendering">rendering strategy</a>,
+the next decision is _where_ a route's data loads, and how its requests relate in
+time. The strategy decides who renders; this decides who waits, and for how long.
+
+## Where data loads
+
+The same fetch can live in three places, each with a different waiting cost.
+
+| Where                     | What it is                                  | Cost / payoff                                  |
+| ------------------------- | ------------------------------------------- | ---------------------------------------------- |
+| **Route loader**          | Data resolved before the route renders      | No spinner, but navigation blocks on it        |
+| **Server component / RSC**| Fetch on the server, in the component tree  | No client JS for the fetch; needs a server     |
+| **Client (e.g. Query)**   | Fetch after mount, on the client            | Instant shell + spinner; an extra round trip   |
+
+Loaders and RSC move the wait before render (you see the page when it's ready);
+client fetching shows the shell immediately and fills in (you see a spinner).
+Which is right is the same visible-vs-interactive trade from the rendering rubric,
+now at the data layer.
+
+## The waterfall is the mistake
+
+Wherever data loads, the dominant performance bug is the **waterfall**: requests
+that run one after another because each `await` blocks the next, even when they
+don't depend on each other.
+
+<Timeline
+  caption="Waterfall: each request waits for the one before, so the page renders only after the last returns."
+  lanes={[
+    { label: "user", segments: [{ label: "GET /me", width: 30 }, { tone: "wait", width: 70 }] },
+    { label: "org", segments: [{ tone: "wait", width: 30 }, { label: "GET /org", width: 30 }, { tone: "wait", width: 40 }] },
+    { label: "posts", segments: [{ tone: "wait", width: 60 }, { label: "GET /posts", width: 30 }, { tone: "wait", width: 10 }] },
+  ]}
+  markers={[{ at: 90, label: "render" }]}
+/>
+
+If those three requests don't actually depend on each other, fire them together
+and the page renders when the **slowest** returns, not the **sum** of all three.
+
+<Timeline
+  caption="Parallel: independent requests start together, so the page renders when the slowest returns."
+  lanes={[
+    { label: "user", segments: [{ label: "GET /me", width: 30 }, { tone: "wait", width: 70 }] },
+    { label: "org", segments: [{ label: "GET /org", width: 25 }, { tone: "wait", width: 75 }] },
+    { label: "posts", segments: [{ label: "GET /posts", width: 32 }, { tone: "wait", width: 68 }] },
+  ]}
+  markers={[{ at: 32, label: "render" }]}
+/>
+
+Only chain a request when it genuinely needs a previous response (you need the
+user's `orgId` before you can fetch the org). Everything else runs in parallel.
+
+<DoDont>
+  <Do title="Parallelize independent requests">
+    Kick off everything a route needs at once (`Promise.all`, parallel loaders,
+    sibling RSC fetches). The route waits for the slowest, and one slow endpoint
+    no longer stacks on top of the others.
+  </Do>
+  <Dont title="await them one at a time">
+    Sequential `await`s read cleanly and quietly serialize independent work into a
+    waterfall. The page can't render until the chain finishes, so total latency
+    is the sum, not the max.
+  </Dont>
+</DoDont>
+
+## Prefetch on intent
+
+The fastest fetch is the one that already started. Kick off a route's data on
+**intent** — hover or focus of a link, the moment before the click — so the data
+is in flight (or cached) by the time navigation happens. Routers expose this
+(TanStack Router and React Router prefetch on hover/intent); it turns a
+post-click wait into no wait at all.
+
+<Callout variant="warning" title="Cache, then invalidate">
+  Caching fetched data (TanStack Query, RSC cache, an HTTP cache) is what makes
+  the second visit instant, but a cache you never invalidate serves stale data
+  after a mutation. Decide the invalidation rule when you add the cache, not
+  after someone files "the count didn't update."
+</Callout>
+
+## Web vs. native
+
+The mechanism differs; the waterfall trap and the parallel fix do not.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Prefer route loaders or RSC so data resolves with (or before) the route and
+    the server can render it; reach for client-side TanStack Query for data that's
+    interactive, user-triggered, or frequently refetched. Parallelize within a
+    loader and prefetch on link hover.
+  </Platform>
+  <Platform label="React Native">
+    There's no server route loader; data is fetched on the client, typically with
+    TanStack Query on screen mount. The waterfall risk moves to mount-time
+    `await` chains. Prefetch on **navigation intent** (when a row is about to be
+    pushed) so the detail screen's query is warm before it animates in.
+  </Platform>
+</PlatformTabs>
+
+This is the data-layer half of <a href="/docs/patterns/loading-states">loading &
+optimistic states</a> (a client fetch _is_ a loading state) and sets up
+<a href="/docs/app-screens/rendering/streaming-ssr">streaming</a>, which lets a
+slow request stop blocking the rest of the page.
+
+<Callout variant="tip" title="This page, in one line">
+  Choose where data loads by who should wait — loader/RSC before render, client
+  after — and above all fetch independent requests in parallel so a route waits
+  for the slowest, not the sum.
+</Callout>

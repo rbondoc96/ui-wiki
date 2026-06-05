@@ -1,0 +1,104 @@
+---
+title: Streaming SSR & Suspense
+section: Rendering & Delivery
+library: app-screens
+order: 5
+description: Flush the static shell first and let slow regions stream into their own Suspense boundaries. The modern default for server rendering, and the place where Suspense fallbacks are just loading states hoisted to the route.
+---
+
+import { Timeline } from "#/components/docs/timeline.tsx"
+
+Blocking server rendering has one slow query hold the entire page hostage:
+nothing paints until everything is ready. **Streaming SSR** breaks that by
+flushing the static shell immediately and letting slow regions arrive later, each
+in its own <a href="/docs/patterns/loading-states">Suspense</a> boundary. It's the
+modern default in React, and it changes _when_ the user sees and can act.
+
+## Blocking vs. streaming
+
+With blocking SSR, the server fetches everything before sending a byte, so first
+paint waits on the slowest query.
+
+<Timeline
+  caption="Blocking SSR: nothing paints until all data is fetched. The user waits, then sees, then (after hydration) can act."
+  lanes={[
+    { label: "server", segments: [{ label: "fetch all data", width: 55 }, { label: "HTML", tone: "live", width: 10 }, { tone: "wait", width: 35 }] },
+    { label: "browser", segments: [{ tone: "wait", width: 65 }, { label: "hydrate", width: 20 }, { tone: "wait", width: 15 }] },
+  ]}
+  markers={[{ at: 65, label: "visible" }, { at: 85, label: "interactive" }]}
+/>
+
+Streaming sends the shell as soon as it's ready and pushes slow regions down the
+same response as they resolve, so the user sees and can act far earlier.
+
+<Timeline
+  caption="Streaming SSR: the shell paints and hydrates early; slow regions stream into their Suspense boundaries while the user can already act."
+  lanes={[
+    { label: "shell", segments: [{ label: "shell", width: 15 }, { label: "HTML", tone: "live", width: 8 }, { tone: "wait", width: 77 }] },
+    { label: "slow data", segments: [{ tone: "wait", width: 23 }, { label: "stream…", width: 42 }, { label: "fills in", tone: "live", width: 10 }, { tone: "wait", width: 25 }] },
+    { label: "browser", segments: [{ tone: "wait", width: 23 }, { label: "hydrate", width: 15 }, { tone: "wait", width: 62 }] },
+  ]}
+  markers={[{ at: 23, label: "shell visible" }, { at: 38, label: "interactive" }, { at: 75, label: "data in" }]}
+/>
+
+## Where boundaries go
+
+A `<Suspense>` boundary marks "this region can arrive late; show a fallback until
+it does." Wrap the **slow or optional** parts (a feed, a recommendations rail, a
+chart behind a query) and leave the shell and primary content outside any
+boundary so they flush first. What you put in the fallback is the same decision
+as everywhere else: a skeleton **sized to the real content** so nothing jumps
+when it resolves. Suspense fallbacks _are_ loading states, hoisted from the
+component up to the route.
+
+<DoDont>
+  <Do title="Boundary the slow regions, flush the rest">
+    Put Suspense around the parts that depend on slow data, so the shell and fast
+    content paint immediately and each slow region fills in independently with a
+    sized skeleton.
+  </Do>
+  <Dont title="One boundary around the whole page">
+    A single Suspense wrapping everything waits for the slowest child before
+    showing anything. That's blocking SSR with extra steps; the streaming buys you
+    nothing.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="Streaming isn't free">
+  Two costs ride along. First, content arriving in pieces **shifts the layout**
+  unless you reserve its space, so size every fallback to its real content.
+  Second, a boundary's fallback is a real UX surface, not a throwaway spinner; a
+  region that flickers spinner-then-content-then-reflow can feel worse than a
+  slightly later but stable paint.
+</Callout>
+
+## Web vs. native
+
+<PlatformTabs>
+  <Platform label="Web">
+    This is React's `renderToPipeableStream`, Server Components streaming, and
+    frameworks built on them (TanStack Start, Next). You flush the shell, and
+    each resolved Suspense boundary streams its HTML into place, then hydrates.
+    The lever is **where the boundaries sit** and how honest each fallback is
+    about the content it stands in for.
+  </Platform>
+  <Platform label="React Native">
+    There's no SSR or hydration, so there's nothing to stream into a document.
+    The rhyming move is on the client: render a sized skeleton immediately on
+    mount, then stream data in (Suspense for data with a client cache, or a query
+    state), filling regions independently and reserving their space so the screen
+    doesn't jump.
+  </Platform>
+</PlatformTabs>
+
+Streaming only helps if the slow data is actually parallelized behind the shell,
+so it pairs directly with
+<a href="/docs/app-screens/rendering/data-fetching">route-level data fetching</a>;
+together they're how a server-rendered page paints fast _and_ doesn't block on
+its slowest query.
+
+<Callout variant="tip" title="This page, in one line">
+  Flush the shell first and stream slow regions into their own Suspense
+  boundaries with content-sized fallbacks, so the user sees and acts early
+  instead of waiting on the slowest query.
+</Callout>

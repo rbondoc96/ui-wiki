@@ -1,0 +1,70 @@
+---
+title: Breadcrumbs & wayfinding
+section: Routing & Navigation
+library: app-screens
+order: 25
+description: Breadcrumbs answer "where am I, and how do I go up?" for deep hierarchies. They show position, not history, so they're worth it past three levels and noise below it.
+---
+
+import { BreadcrumbsDemo } from "#/components/docs/wayfinding-examples.tsx"
+
+Breadcrumbs are a wayfinding aid: a trail from the root down to the current page
+that answers two questions at once, **where am I in the hierarchy** and **how do
+I move up a level**. They earn their space in deep, nested structures and become
+pure noise in shallow ones.
+
+<BreadcrumbsDemo />
+
+## When you need them
+
+- The hierarchy is **deep**: roughly three levels or more, where "up" isn't
+  obvious from the page alone.
+- Users **land mid-tree** from search, a deep link, or a notification, with no
+  memory of the path they'd have clicked to get there.
+- The structure is genuinely **hierarchical** (a file tree, nested categories,
+  org → team → project), not a flat set of destinations.
+
+And when you don't: flat apps, two-level structures, or anywhere a back action
+and a clear page title already answer "where am I." On a phone, a full trail
+rarely fits; show just the parent ("‹ Projects") instead.
+
+## They show position, not history
+
+The most common breadcrumb bug is treating them like a back button. Breadcrumbs
+reflect the **hierarchy** (the fixed path from root to here), not the **history**
+(the route you happened to take). If you arrived at a project from a search
+results page, the breadcrumb still reads `Home › Projects › This project`, never
+`Home › Search › This project`. Position is stable; history is per-visit. Use the
+browser back button for history and breadcrumbs for structure.
+
+<DoDont>
+  <Do title="Mirror the hierarchy; current page isn't a link">
+    Build the trail from the route's place in the tree, each ancestor linking up a
+    level, and render the last crumb as plain text marked `aria-current="page"` —
+    it's where you already are.
+  </Do>
+  <Dont title="Mirror the back stack or relink the current page">
+    A trail that reflects how the user got here, or whose last crumb links to the
+    page you're on, confuses position with history and adds a link that goes
+    nowhere.
+  </Dont>
+</DoDont>
+
+## Truncation
+
+Long trails and small screens force collapse. Keep the two ends, the root and the
+current page (plus usually its parent), and collapse the middle behind an `…` that
+expands on click, as in the demo above. The ends are what orient; the middle is
+what folds.
+
+<Callout variant="tip" title="This page, in one line">
+  Breadcrumbs show your fixed position in a deep hierarchy and a way up, not the
+  history of how you arrived; use them past about three levels, make the last
+  crumb plain text, and collapse the middle when space is tight.
+</Callout>
+
+They lean on the same routing that makes a view addressable, so the path is
+derived from the URL, not from navigation history (see
+<a href="/docs/app-screens/navigation/url-as-state">URL as state</a>), and they
+complement rather than replace the primary nav chrome from the
+<a href="/docs/app-screens/navigation/nav-pattern-picker">nav pattern picker</a>.
