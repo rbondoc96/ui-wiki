@@ -22,9 +22,9 @@ that, so all unchecked.
 | Done | #   | Section              | Item                                       | Type    | Why it ranks here                                          |
 | ---- | --- | -------------------- | ------------------------------------------ | ------- | ---------------------------------------------------------- |
 | ☐    | 1   | Rendering & Delivery | Rendering strategy decision rubric         | Content | The page you'll point teammates at on every new project    |
-| ☐    | 2   | Routing & Navigation | Nav pattern picker: tab vs sidebar vs top  | Content | The recurring "where does navigation live" decision        |
+| ✅   | 2   | Routing & Navigation | Nav pattern picker: tab vs sidebar vs top  | Content | The recurring "where does navigation live" decision        |
 | ☐    | 3   | Routing & Navigation | URL as state, search params & deep linking | Content | Most-skipped, most-gotten-wrong; shared web/RN concern      |
-| ☐    | 4   | Layouts & Archetypes | App shell & layout composition             | Content | The frame every other screen hangs inside                   |
+| ✅   | 4   | Layouts & Archetypes | App shell & layout composition             | Content | The frame every other screen hangs inside                   |
 | ☐    | 5   | Routing & Navigation | Web vs RN navigation models                | Content | Where the two stacks diverge hardest — pure cross-platform   |
 | ☐    | 6   | Rendering & Delivery | Streaming SSR & Suspense                   | Content | The modern default; ties straight into loading states       |
 | ☐    | 7   | Layouts & Archetypes | Dashboard layout & information density     | Content | High-recurrence admin work; pairs with Data tables          |
@@ -35,7 +35,7 @@ that, so all unchecked.
 | ☐    | 12  | Layouts & Archetypes | Landing / marketing page anatomy           | Content | Different rules from app UI; you build these too            |
 | ☐    | 13  | Routing & Navigation | Breadcrumbs & wayfinding                    | Content | Small page, clears up a recurring "do I need these"         |
 | ☐    | 14  | Layouts & Archetypes | Responsive app-shell behavior              | Content | Where shell meets RN/responsive — the adaptive shell        |
-| ☐    | 15  | Layouts & Archetypes | Master-detail / multi-pane layouts         | Content | The list+detail archetype, and how it folds on mobile       |
+| ✅   | 15  | Layouts & Archetypes | Master-detail / multi-pane layouts         | Content | The list+detail archetype, and how it folds on mobile       |
 | ☐    | 16  | Rendering & Delivery | ISR & partial pre-rendering (PPR)          | Content | The "mostly static, partly dynamic" middle ground           |
 | ☐    | 17  | Layouts & Archetypes | Empty & first-run dashboards               | Content | Extends Empty States up to the whole-screen scale           |
 | ☐    | 18  | All                  | Diagram component for delivery timelines   | Feature | Rendering/hydration are visual; a reusable diagram block helps |
@@ -111,7 +111,10 @@ purpose. **This is where web and RN diverge hardest** — React Router /
 TanStack Router vs. React Navigation / Expo Router — so lean on
 `<PlatformTabs>` here more than anywhere else.
 
-## 2. Nav pattern picker: tab vs sidebar vs top nav — [Content]
+## 2. Nav pattern picker: tab vs sidebar vs top nav — [Content] ✅ Done
+
+> Shipped as `app-screens/navigation/nav-pattern-picker.mdx` with a live
+> `NavPatternGallery` (three clickable chrome mockups) and a decision table.
 
 When each navigation chrome wins: bottom tab bar (few top-level destinations,
 mobile-first), sidebar (deep/hierarchical, desktop dashboards), top nav
@@ -175,7 +178,13 @@ these" question. Cheap to write, modest reach.
 The big-picture screen layouts you assemble components into: the app shell, and
 the recurring whole-screen archetypes — dashboards, landing pages, master-detail.
 
-## 4. App shell & layout composition — [Content]
+## 4. App shell & layout composition — [Content] ✅ Done
+
+> Shipped concretely as `app-screens/layouts/nav-rail-triptych.mdx` (the
+> rail + list + content + metadata shell) with a static anatomy diagram and a
+> live, drivable mockup. The reusable frame primitives (`ShellFrame`,
+> `DiagramFrame`, `Region`, `Bar`) now live in `components/docs/shell.tsx` for
+> the rest of the archetype pages.
 
 The persistent frame — header, nav, content region, optional footer — and how
 the routed view slots into it via layout routes and `<Outlet>`. Composition over
@@ -219,7 +228,12 @@ codebases."
 **Why:** Where the app shell (#4) meets responsive/RN reality — the page that
 makes the shell actually ship cross-platform. Builds on #4, so ranked after it.
 
-## 15. Master-detail / multi-pane layouts — [Content]
+## 15. Master-detail / multi-pane layouts — [Content] ✅ Done
+
+> Shipped as `app-screens/layouts/master-detail.mdx` with a live mockup whose
+> layout toggle folds the same data from two-pane to a single-pane phone
+> drill-down. Cross-linked with #4 (the triptych is master-detail plus two
+> rails).
 
 The list+detail archetype (inbox, settings, file browser): side-by-side on wide
 screens, and how it folds to list-pushes-to-detail navigation on mobile. URL

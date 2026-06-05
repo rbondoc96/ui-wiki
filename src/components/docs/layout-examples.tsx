@@ -10,8 +10,13 @@ import {
 } from "@phosphor-icons/react"
 import { useState } from "react"
 import type { Icon } from "@phosphor-icons/react"
-import type { ReactNode } from "react"
 
+import {
+  Bar,
+  DiagramFrame,
+  Region,
+  ShellFrame,
+} from "#/components/docs/shell.tsx"
 import { cn } from "#/lib/utils.ts"
 
 // Visual examples for the Layouts & Archetypes section. `NavRailTriptychAnatomy`
@@ -22,80 +27,38 @@ import { cn } from "#/lib/utils.ts"
 
 // --- Anatomy diagram -------------------------------------------------------
 
-// One labelled region of the static diagram. `grow` controls relative width so
-// the proportions echo a real shell (thin rail, wide content).
-function Region({
-  caption,
-  children,
-  grow,
-  name,
-}: {
-  caption: string
-  children?: ReactNode
-  grow: string
-  name: string
-}) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-2 border-r border-border px-3 py-3 last:border-r-0",
-        grow
-      )}
-    >
-      <span className="text-[0.65rem] font-semibold tracking-wider text-foreground uppercase">
-        {name}
-      </span>
-      <div className="flex flex-1 flex-col gap-1.5">{children}</div>
-      <span className="text-[0.7rem] leading-tight text-muted-foreground">
-        {caption}
-      </span>
-    </div>
-  )
-}
-
-// A faint placeholder bar, used to suggest content without drawing real UI.
-function Bar({ w = "w-full" }: { w?: string }) {
-  return <span className={cn("h-1.5 rounded-full bg-muted-foreground/20", w)} />
-}
-
 export function NavRailTriptychAnatomy() {
   return (
-    <figure className="not-prose my-8">
-      <div className="flex h-56 overflow-hidden rounded-xl border border-border bg-card">
-        <Region caption="contexts" grow="w-16 shrink-0" name="Rail">
-          <span className="size-5 rounded-md bg-foreground/80" />
-          <span className="size-5 rounded-md bg-muted-foreground/20" />
-          <span className="size-5 rounded-md bg-muted-foreground/20" />
-        </Region>
-        <Region caption="scan + filter" grow="w-40 shrink-0" name="List">
-          <Bar w="w-2/3" />
-          <div className="mt-1 flex flex-col gap-1.5">
-            <span className="h-5 rounded bg-accent" />
-            <span className="h-5 rounded bg-muted-foreground/10" />
-            <span className="h-5 rounded bg-muted-foreground/10" />
-          </div>
-        </Region>
-        <Region caption="read + act" grow="flex-1" name="Content">
-          <Bar w="w-1/2" />
-          <Bar />
-          <Bar />
-          <Bar w="w-5/6" />
-          <Bar w="w-2/3" />
-        </Region>
-        <Region
-          caption="facts + cross-refs"
-          grow="w-36 shrink-0"
-          name="Metadata"
-        >
-          <Bar w="w-1/2" />
-          <Bar w="w-3/4" />
-          <Bar w="w-2/3" />
-        </Region>
-      </div>
-      <figcaption className="mt-2 text-center text-xs text-muted-foreground">
-        Four regions, one job each: navigate, scan, read, relate.
-      </figcaption>
-    </figure>
+    <DiagramFrame
+      caption="Four regions, one job each: navigate, scan, read, relate."
+      className="h-56"
+    >
+      <Region caption="contexts" grow="w-16 shrink-0" name="Rail">
+        <span className="size-5 rounded-md bg-foreground/80" />
+        <span className="size-5 rounded-md bg-muted-foreground/20" />
+        <span className="size-5 rounded-md bg-muted-foreground/20" />
+      </Region>
+      <Region caption="scan + filter" grow="w-40 shrink-0" name="List">
+        <Bar w="w-2/3" />
+        <div className="mt-1 flex flex-col gap-1.5">
+          <span className="h-5 rounded bg-accent" />
+          <span className="h-5 rounded bg-muted-foreground/10" />
+          <span className="h-5 rounded bg-muted-foreground/10" />
+        </div>
+      </Region>
+      <Region caption="read + act" grow="flex-1" name="Content">
+        <Bar w="w-1/2" />
+        <Bar />
+        <Bar />
+        <Bar w="w-5/6" />
+        <Bar w="w-2/3" />
+      </Region>
+      <Region caption="facts + cross-refs" grow="w-36 shrink-0" name="Metadata">
+        <Bar w="w-1/2" />
+        <Bar w="w-3/4" />
+        <Bar w="w-2/3" />
+      </Region>
+    </DiagramFrame>
   )
 }
 
@@ -263,10 +226,7 @@ export function NavRailTriptych() {
   }
 
   return (
-    <div
-      className="not-prose my-8 flex h-[22rem] overflow-hidden rounded-xl border border-border bg-card text-xs"
-      data-ui
-    >
+    <ShellFrame className="h-[22rem]">
       {/* Rail */}
       <nav
         className={cn(
@@ -446,6 +406,6 @@ export function NavRailTriptych() {
           </dl>
         </aside>
       ) : null}
-    </div>
+    </ShellFrame>
   )
 }

@@ -1,0 +1,119 @@
+---
+title: Master-detail
+section: Layouts & Archetypes
+library: app-screens
+order: 25
+description: A list of peers next to the one you've selected. The most common app archetype, and the engine inside the nav-rail + triptych. Its defining trait is how it folds to a single pane on a phone.
+---
+
+import {
+  MasterDetail,
+  MasterDetailAnatomy,
+} from "#/components/docs/master-detail-examples.tsx"
+
+Master-detail is the most common archetype in app UI: a **list of peers** beside
+a **detail view** of the one you've selected. Inboxes, file browsers, settings,
+contacts, a table with a row drawer, the middle two panes of a
+<a href="/docs/app-screens/layouts/nav-rail-triptych">nav-rail + triptych</a> are
+all the same two pieces. Master-detail is to layout what
+<a href="/docs/data/tables-vs-lists">lists</a> are to data: so ordinary it's
+easy to build it badly without noticing.
+
+<MasterDetailAnatomy />
+
+## The selection contract
+
+The pattern only works if the two panes keep a strict deal: **the master selects,
+the detail reflects.** Picking a row in the list changes the detail and nothing
+else. The list stays put so you keep your place in the stream, and the URL holds
+the selection (`/inbox/1842`) so a detail view is deep-linkable, refreshable, and
+back-button-able.
+
+Break that deal, by navigating away on select, mutating the list from the
+detail, or losing the selection on refresh, and users stop trusting the list as a
+stable place to stand.
+
+## The defining move: folding to one pane
+
+Two side-by-side panes don't fit a phone. The trait that separates a real
+master-detail from two divs in a row is how it **collapses to a single pane**:
+the list becomes one screen, selecting pushes the detail as the next screen, and
+a back affordance returns to the list with the scroll position intact. Toggle the
+mockup below between layouts to see the same data fold.
+
+<MasterDetail />
+
+## When to use it
+
+- A collection of items that **share a shape**, so one list and one detail
+  renderer cover them all.
+- Users **work through items in sequence**, triaging or editing, and need to keep
+  their place in the list between selections.
+- The detail is **worth a dedicated region**: more than a row's worth of content,
+  less than a full separate destination.
+
+## When it strains
+
+- **The detail is its own app.** If selecting an item opens something with its
+  own deep navigation, that's a route change, not a detail pane. Don't trap a
+  whole sub-app in the right half.
+- **The list needs the full width.** Wide tables, boards, and canvases lose too
+  much to a permanent detail pane; prefer a row drawer or a separate detail
+  route that uses the whole screen.
+- **There's only ever one item.** A detail with no peers to pick between is just
+  a page. Drop the list.
+
+<DoDont>
+  <Do title="Keep the list's place across selections">
+    The master pane holds scroll position and selection while the detail changes.
+    Moving through a queue should never re-scroll or rebuild the list.
+  </Do>
+  <Dont title="Navigate away from the list on select">
+    If clicking a row replaces the whole screen, you've turned a detail pane into
+    a page transition, and the back button now fights the user instead of
+    returning them to where they were in the list.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="Empty and unselected states are part of the pattern">
+  The detail pane needs a real empty state for "nothing selected yet" and for "no
+  items at all" — not a blank half-screen. This is the whole-screen cousin of
+  <a href="/docs/patterns/empty-states">empty states</a>; design it, don't leave
+  it to chance.
+</Callout>
+
+## Folding on web vs. native
+
+Both stacks reach the same single-pane endpoint; they get there differently.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Drive the fold with a breakpoint or container query. Wide: list and detail
+    side by side, selection in the URL (`/inbox/1842`). Narrow: the list and
+    detail become two routes, so the same URL still deep-links the detail and the
+    browser back button returns to the list. Reserve scroll restoration so the
+    list lands where you left it.
+  </Platform>
+  <Platform label="React Native">
+    There's no fluid resize, so you branch on device class. Tablet can run the
+    two-pane split (React Navigation's layouts, Expo Router parallel segments).
+    Phone is a native stack navigator: the list is one screen, selecting pushes
+    the detail, the hardware or header back pops it. The push/pop animation and
+    gesture come for free, which is exactly the affordance the web version has to
+    rebuild.
+  </Platform>
+</PlatformTabs>
+
+## Relationship to the triptych
+
+The <a href="/docs/app-screens/layouts/nav-rail-triptych">nav-rail + triptych</a>
+is a master-detail with two additions: a navigation rail in front that swaps
+which collection the list shows, and a metadata rail behind the detail. Get
+master-detail right first, the selection contract and the mobile fold, and the
+triptych is mostly a matter of bolting on those two rails.
+
+<Callout variant="tip" title="This pattern, in one line">
+  A stable list of peers and a detail of the selected one, bound by "select on
+  the left, reflect on the right," and defined by how cleanly it folds to a
+  single screen.
+</Callout>

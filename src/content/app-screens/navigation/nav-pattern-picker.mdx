@@ -1,0 +1,105 @@
+---
+title: Nav pattern picker
+section: Routing & Navigation
+library: app-screens
+order: 10
+description: Where top-level navigation lives — bottom tabs, sidebar, or top nav — decided by how many destinations there are, how deep they nest, and what the platform expects.
+---
+
+import { NavPatternGallery } from "#/components/docs/nav-pattern-examples.tsx"
+
+"Where does navigation live" is a decision you make on every new app, and the
+three answers are nearly always the same: a **bottom tab bar**, a **sidebar**, or
+a **top nav**. The right one falls out of three properties of your app, not of
+your taste: how many top-level destinations there are, how deeply they nest, and
+what the platform expects.
+
+<NavPatternGallery />
+
+## The three chromes
+
+### Bottom tabs
+
+A fixed row of three to five destinations at the bottom of the screen, each flat
+and equal. Wins on mobile, where the bottom edge is the reachable zone and the
+small count keeps every destination one tap away. The hard ceiling is real: past
+five tabs they shrink to unusable, and a "More" tab is a confession that the
+model doesn't fit.
+
+### Sidebar
+
+A vertical list down the left edge, the only chrome that holds a **hierarchy**:
+sections, groups, nesting, collapsible trees. Wins on desktop dashboards and
+tools with many destinations. It trades horizontal room for that capacity, so it
+collapses to icons or slides away when content needs the width. This is the rail
+in the
+<a href="/docs/app-screens/layouts/nav-rail-triptych">nav-rail + triptych</a>.
+
+### Top nav
+
+A horizontal bar across the top, usually with a logo and a handful of links.
+Wins for **shallow** apps and marketing or content sites: few destinations, no
+depth, a familiar web convention. It doesn't scale to many items (they overflow
+or hide behind a hamburger) and can't express hierarchy on its own.
+
+## Deciding axes
+
+Read your app against three properties and the answer is usually forced.
+
+| If…                                  | Lean toward    | Because                                          |
+| ------------------------------------ | -------------- | ------------------------------------------------ |
+| 3–5 flat destinations, mobile-first  | **Bottom tabs**| Thumb-reachable, every destination one tap away  |
+| Many destinations, or any nesting    | **Sidebar**    | The only chrome that holds hierarchy             |
+| Few destinations, shallow, web/content | **Top nav**  | Familiar, light, no depth to express             |
+| Deep tool that's also used on phones | **Sidebar + tabs** | Sidebar on desktop, a tab subset on mobile  |
+
+<DoDont>
+  <Do title="Match the count to the chrome">
+    Keep bottom tabs to five flat destinations. If the model is deeper, switch to
+    a sidebar that can group and nest, rather than forcing depth into a bar that
+    can't show it.
+  </Do>
+  <Dont title="Overload the chrome you picked">
+    Eleven tabs hiding a tree behind a "More" sheet, or a top nav with three
+    levels of dropdowns. When the navigation needs more than the chrome can show,
+    the chrome is wrong, not too small.
+  </Dont>
+</DoDont>
+
+## Combinations
+
+Real apps mix these by scale rather than choosing one forever.
+
+- **Sidebar + top bar.** Sidebar for primary destinations, a top bar for search,
+  account, and global actions. The default for dense dashboards.
+- **Responsive swap.** The same app shows a sidebar on desktop and a bottom tab
+  bar (a subset of the same destinations) on mobile. Keep the destination set
+  consistent so muscle memory survives the resize.
+- **Tabs + stack.** Bottom tabs for top-level sections, a push/stack navigator
+  inside each tab for depth. The standard mobile shape.
+
+## Web vs. native expectations
+
+The platform sets the default, and fighting it costs familiarity.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Top nav and sidebars are the native idioms; users expect global links up top
+    and a left sidebar in dashboards. Each destination should be a real URL so it
+    deep-links and the back button works. A bottom tab bar on the desktop web
+    reads as a mobile port.
+  </Platform>
+  <Platform label="React Native">
+    The bottom tab bar is the platform-native primary nav on phones (React
+    Navigation's tab navigator, Expo Router tab groups); a left sidebar feels
+    foreign on a handset. Tablets can promote to a sidebar or split view. Tabs
+    typically each own a stack navigator, so depth lives inside a tab rather than
+    in the bar.
+  </Platform>
+</PlatformTabs>
+
+<Callout variant="tip" title="This decision, in one line">
+  Count the top-level destinations and check whether they nest: 3–5 and flat
+  wants tabs, many or nested wants a sidebar, few and shallow wants a top nav, and
+  the platform breaks any tie.
+</Callout>

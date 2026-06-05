@@ -40,7 +40,9 @@ that none of them tries to do a second job.
 A thin column of top-level contexts (Inbox, Pull Requests, Jira, Notes…) with
 settings or account pinned to the bottom. It is chrome, not content: it changes
 _what_ the list shows, never the selection inside it. Keep it to icons, expand
-to labels on hover or toggle, and collapse it first when width gets tight.
+to labels on hover or toggle, and collapse it first when width gets tight. It's a
+sidebar in the sense of the <a href="/docs/app-screens/navigation/nav-pattern-picker">nav
+pattern picker</a>, chosen here because the contexts are many and may nest.
 
 ### List — what's here, and which one?
 
@@ -159,7 +161,8 @@ The same skeleton stretches across a few common shapes:
   the reason the shape feels so familiar.
 
 This is the desktop-shell end of <a href="/docs/app-screens/rendering">App &
-Screens</a>; the list and content panes are a master-detail pair, and the same
+Screens</a>; the list and content panes are a <a href="/docs/app-screens/layouts/master-detail">master-detail
+pair</a>, and the same
 loading and selection rules from <a href="/docs/patterns/loading-states">Loading
 & Optimistic States</a> and <a href="/docs/data/tables-vs-lists">Tables vs.
 Lists</a> apply to the middle two columns.
