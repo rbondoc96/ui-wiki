@@ -1,0 +1,90 @@
+---
+title: Landing page anatomy
+section: Layouts & Archetypes
+library: app-screens
+order: 45
+description: Marketing pages play by different rules than app UI. Here the design is the product, the layout is a scroll-ordered argument, and the whole page exists to make one case and offer one action.
+---
+
+import { LandingAnatomy } from "#/components/docs/landing-examples.tsx"
+
+Every other page in this section is **product** UI, where the design serves the
+work. A landing page is the opposite: the design _is_ the product. Its job isn't
+to let someone do a task, it's to make a single argument and offer a single
+action, top to bottom, in scroll order. That flips most of the rules the rest of
+the wiki runs on.
+
+<LandingAnatomy />
+
+## The zones, in scroll order
+
+A conventional landing page stacks the same beats, each doing one job:
+
+1. **Top bar** — logo, a few links, one primary action. Minimal, often sticky;
+   it's a wayfinder, not a full nav.
+2. **Hero** — one clear claim, a supporting line, and the primary CTA. It has to
+   earn the first screen: say what this is and why it matters before any scroll.
+3. **Social proof** — customer logos, a number, a quote. Borrowed credibility,
+   placed early because trust is the first objection.
+4. **Value props** — a few benefits framed as **outcomes**, not a feature dump.
+   Each answers "what do I get," not "what does it have."
+5. **Closing CTA** — repeat the one action now that the case is made. Don't make
+   a convinced reader scroll back up to find it.
+6. **Footer** — secondary nav, legal, the links scanners exit through.
+
+## Different rules from app UI
+
+What's correct on a dashboard is often wrong here.
+
+- **Density inverts.** App UI rewards fitting more in view; a landing page rewards
+  space, rhythm, and one idea per screen. Generous whitespace is doing work, not
+  wasting it.
+- **One primary action.** A dashboard exposes many controls; a landing page
+  pushes **one** CTA, repeated. Competing calls to action split attention and
+  convert worse than a single clear one.
+- **It's a narrative, not a tool.** The layout is a sequence with a beginning and
+  an end, read once, not a surface returned to daily. Order is the argument.
+- **Visual ambition is on-brief.** Restraint is the right instinct for product UI;
+  a landing page is allowed, often expected, to be bold. This is the one place in
+  the wiki where "make it striking" is the correct note.
+
+<DoDont>
+  <Do title="One argument, one action, in order">
+    Lead with a specific claim, support it with proof and outcomes, and ask for a
+    single action, repeated. Each section should move a skeptical reader one step
+    toward the CTA.
+  </Do>
+  <Dont title="A generic hero over identical feature cards">
+    A vague headline, a gradient hero, three look-alike feature cards, and five
+    competing buttons is the default that converts no one. It looks like a landing
+    page without making an argument or asking for a decision.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="The slop landing">
+  The most common AI-generated marketing page is a big gradient headline, a row
+  of three identical icon-and-text cards, and a wall of equally-weighted
+  sections. It reads as generated because it makes no specific claim and shows no
+  hierarchy. Say something only you could say, give one section clear primacy,
+  and cut the cards that exist only to fill a three-column grid.
+</Callout>
+
+## It's still a page
+
+Brand ambition doesn't excuse the fundamentals. The hero is often the largest
+asset on the site, so its loading cost is the first-impression cost: size images,
+avoid layout shift as fonts and media arrive (the same
+<a href="/docs/app-screens/rendering">rendering</a> concerns, now with money on
+the line). It must be reachable by keyboard and screen reader, and it has to hold
+up from a 390px phone to a wide desktop. A striking page that paints slowly or
+breaks on a phone loses the conversion it was built to win.
+
+This is the brand-register counterpart to the product-register
+<a href="/docs/app-screens/layouts/dashboard-layout">dashboard</a>: same wiki, two
+opposite jobs, two opposite sets of rules.
+
+<Callout variant="tip" title="This archetype, in one line">
+  A landing page is a scroll-ordered argument for one claim ending in one action;
+  it inverts app-UI density, rewards visual ambition, and still has to load fast
+  and work everywhere.
+</Callout>

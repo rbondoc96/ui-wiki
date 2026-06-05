@@ -1,0 +1,90 @@
+---
+title: Responsive app-shell
+section: Layouts & Archetypes
+library: app-screens
+order: 40
+description: An app shell isn't one layout, it's a set of configurations across widths. As space shrinks it sheds regions from the outside in — metadata, then the rail, then the split itself — until it's a single pane with a bottom tab bar.
+---
+
+import { ResponsiveShell } from "#/components/docs/responsive-examples.tsx"
+
+A shell that works at 1440px and breaks at 768px isn't responsive, it's a desktop
+layout that happens to render on a phone. A real app shell is a **set of
+configurations** keyed on width, sharing one navigation model and one source of
+truth, that sheds regions in a deliberate priority order as space runs out.
+
+<ResponsiveShell />
+
+## Shed from the outside in
+
+The regions of a <a href="/docs/app-screens/layouts/nav-rail-triptych">nav-rail +
+triptych</a> have a priority order, and narrowing the viewport reveals it. Toggle
+the demo above through the three widths:
+
+1. **Desktop** — all four regions: rail, list, content, metadata.
+2. **Tablet** — the **metadata** rail folds away first (to a drawer or the
+   content header); the load-bearing list and content stay side by side.
+3. **Phone** — the split itself collapses. The list and content become one pane
+   each (list pushes to detail, exactly the
+   <a href="/docs/app-screens/layouts/master-detail">master-detail</a> fold), and
+   the rail becomes a **bottom tab bar**.
+
+The order isn't arbitrary: drop the most supporting region first and the most
+essential last, so the screen stays usable at every width instead of breaking all
+at once.
+
+## Navigation transforms too
+
+The shell's chrome changes shape along with its panes. A left sidebar on desktop
+becomes a bottom tab bar on the phone, the same destinations in the
+platform-appropriate place (see the
+<a href="/docs/app-screens/navigation/nav-pattern-picker">nav pattern picker</a>).
+Keep the destination set identical across widths so muscle memory survives the
+resize; only the chrome that presents them changes.
+
+<DoDont>
+  <Do title="Reconfigure the shell, keep one model">
+    Drive the layout from width with one navigation model and one source of
+    truth, so the same selection and route survive a resize. Regions yield in
+    priority order and the screen is usable at every size.
+  </Do>
+  <Dont title="Ship two layouts and toggle with display:none">
+    Rendering a desktop tree and a mobile tree and hiding one doubles the markup,
+    drifts out of sync, and ships both to every device. Adapt one shell; don't
+    maintain two that pretend to be the same app.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="Reconfiguring is not just hiding">
+  Hiding the metadata rail with `display: none` leaves its data unreachable on
+  mobile. Folding it means the data still has a home, a drawer, a content-header
+  section, a dedicated screen, so nothing the desktop user could see becomes
+  invisible to the phone user. Decide where each shed region's content goes, not
+  just that it disappears.
+</Callout>
+
+## Breakpoints vs. container queries, and the native split
+
+How you trigger the reconfiguration depends on the platform.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Drive it with CSS. Use **container queries** when the shell should respond to
+    the space _it_ has (a panel that's narrow because a sibling is open), and
+    viewport **breakpoints** for true device-width changes. Container queries are
+    usually the better fit for shells, since a region's room depends on its
+    neighbors, not just the window.
+  </Platform>
+  <Platform label="React Native">
+    There's no fluid resize, so you branch on **device class** and orientation
+    rather than a continuum of breakpoints. Phone gets the stacked, tab-bar shell;
+    tablet (especially landscape) can promote to a two-pane split. The fold points
+    are discrete, decided by `useWindowDimensions` and platform, not by CSS.
+  </Platform>
+</PlatformTabs>
+
+<Callout variant="tip" title="This page, in one line">
+  One shell, configured per width: shed regions from the outside in (metadata,
+  then rail, then the split), transform the navigation chrome to match, and keep
+  a single model so state survives every resize.
+</Callout>

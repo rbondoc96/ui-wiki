@@ -25,16 +25,16 @@ that, so all unchecked.
 | ✅   | 2   | Routing & Navigation | Nav pattern picker: tab vs sidebar vs top  | Content | The recurring "where does navigation live" decision        |
 | ✅   | 3   | Routing & Navigation | URL as state, search params & deep linking | Content | Most-skipped, most-gotten-wrong; shared web/RN concern      |
 | ✅   | 4   | Layouts & Archetypes | App shell & layout composition             | Content | The frame every other screen hangs inside                   |
-| ☐    | 5   | Routing & Navigation | Web vs RN navigation models                | Content | Where the two stacks diverge hardest — pure cross-platform   |
+| ✅   | 5   | Routing & Navigation | Web vs RN navigation models                | Content | Where the two stacks diverge hardest — pure cross-platform   |
 | ☐    | 6   | Rendering & Delivery | Streaming SSR & Suspense                   | Content | The modern default; ties straight into loading states       |
 | ✅   | 7   | Layouts & Archetypes | Dashboard layout & information density     | Content | High-recurrence admin work; pairs with Data tables          |
 | ☐    | 8   | Rendering & Delivery | Hydration, islands & partial hydration     | Content | Explains the TTI/"why isn't it clickable" mystery           |
 | ☐    | 9   | Routing & Navigation | Route architecture & code-splitting        | Content | Sets up everything else in this section                     |
 | ✅   | 10  | All                  | Scale-map landing for the library          | Feature | Orients readers; cheap; makes the macro/micro split legible |
 | ☐    | 11  | Rendering & Delivery | Data fetching & caching at the route level | Content | Loaders/RSC/Query — the actual day-job decision             |
-| ☐    | 12  | Layouts & Archetypes | Landing / marketing page anatomy           | Content | Different rules from app UI; you build these too            |
+| ✅   | 12  | Layouts & Archetypes | Landing / marketing page anatomy           | Content | Different rules from app UI; you build these too            |
 | ☐    | 13  | Routing & Navigation | Breadcrumbs & wayfinding                    | Content | Small page, clears up a recurring "do I need these"         |
-| ☐    | 14  | Layouts & Archetypes | Responsive app-shell behavior              | Content | Where shell meets RN/responsive — the adaptive shell        |
+| ✅   | 14  | Layouts & Archetypes | Responsive app-shell behavior              | Content | Where shell meets RN/responsive — the adaptive shell        |
 | ✅   | 15  | Layouts & Archetypes | Master-detail / multi-pane layouts         | Content | The list+detail archetype, and how it folds on mobile       |
 | ☐    | 16  | Rendering & Delivery | ISR & partial pre-rendering (PPR)          | Content | The "mostly static, partly dynamic" middle ground           |
 | ☐    | 17  | Layouts & Archetypes | Empty & first-run dashboards               | Content | Extends Empty States up to the whole-screen scale           |
@@ -144,7 +144,12 @@ in `useState`."
 web/RN idea (deep linking is the mobile face of the same problem). High
 reference value, broadly applicable.
 
-## 5. Web vs RN navigation models — [Content]
+## 5. Web vs RN navigation models — [Content] ✅ Done
+
+> Shipped as `app-screens/navigation/web-vs-rn-navigation.mdx` with a
+> `NavModelMap` visual (the same app as a web route tree beside a native
+> navigator tree), a concept-mapping table, and a section on what doesn't map
+> (back behavior, tab persistence, modals, the missing URL).
 
 The conceptual mismatch laid bare: the web's single history stack and URL-as-
 truth vs. native's nested **stack / tab / drawer** navigators, the back-stack as
@@ -215,7 +220,12 @@ to fight overload. A `<DoDont>` on "lead with the one number that matters" vs.
 **Why:** High-recurrence admin/internal-tool work, and it pairs naturally with
 the existing Data section — a dashboard is mostly tables and charts in a grid.
 
-## 12. Landing / marketing page anatomy — [Content]
+## 12. Landing / marketing page anatomy — [Content] ✅ Done
+
+> Shipped as `app-screens/layouts/landing-marketing.mdx` with a `LandingAnatomy`
+> page-silhouette visual. Framed explicitly as the brand-register counterpart to
+> the dashboard, with a warning callout on the slop landing (gradient hero +
+> identical feature cards).
 
 The archetype with different rules from app UI: hero, value prop, social proof,
 feature sections, CTA rhythm, the fold as a soft guideline not a law, and
@@ -226,7 +236,12 @@ and where a marketing page's performance budget differs from an app's.
 UI, and it closes the loop with the rendering rubric (static delivery lives
 here).
 
-## 14. Responsive app-shell behavior — [Content]
+## 14. Responsive app-shell behavior — [Content] ✅ Done
+
+> Shipped as `app-screens/layouts/responsive-app-shell.mdx` with a live
+> `ResponsiveShell` (a desktop/tablet/phone viewport toggle that sheds regions
+> from the outside in and collapses to a bottom-tab single pane, reusing
+> `PhoneFrame`).
 
 How the shell adapts across breakpoints and platforms: sidebar that collapses to
 a drawer to a bottom tab bar, content reflow, the responsive-vs-adaptive

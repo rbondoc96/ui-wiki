@@ -1,0 +1,100 @@
+---
+title: Web vs. native navigation
+section: Routing & Navigation
+library: app-screens
+order: 20
+description: Two navigation models for the same app. The web nests layouts under URLs; React Native nests screens under navigators. Where the concepts map, and the places they stubbornly don't.
+---
+
+import { NavModelMap } from "#/components/docs/nav-model-examples.tsx"
+
+This is where the two stacks diverge hardest. On the web, navigation is a **route
+tree**: URLs with nested layouts, and the address bar as the source of truth. On
+React Native it's a **navigator tree**: stacks, tabs, and drawers that own
+screens, with no URL underneath unless you add one. Most cross-platform
+navigation pain comes from carrying one model's instincts into the other.
+
+<NavModelMap />
+
+## Two mental models
+
+On the web, the URL _is_ the state and layouts nest beneath its segments;
+rendering a route means matching a path and filling each layout's outlet. On
+native, you compose **navigators** — a stack for push/pop, a tab bar for
+siblings, a drawer for a side menu — and screens live inside them. The structure
+is a tree of navigators, not a tree of paths.
+
+| Web                                  | React Native                              |
+| ------------------------------------ | ----------------------------------------- |
+| URL path segment                     | Screen inside a navigator                 |
+| Nested layout / `<Outlet>`           | Nested navigator                          |
+| History stack (browser)              | Navigation stack (per stack navigator)    |
+| `push` vs `replace`                  | `navigate` / `push` vs `replace`          |
+| Link to a URL                        | `navigate("Screen", params)` / deep link  |
+| Route loader / search params         | Route params + a linking config           |
+
+## Where it doesn't map cleanly
+
+The table makes it look tidy. The friction is in the gaps.
+
+- **Back behavior.** The web has one global history stack and a hardware-ish back
+  (the browser button). Native has a back stack _per_ stack navigator plus a real
+  hardware back on Android, so "go back" is contextual, not global.
+- **Persistent vs. fresh screens.** Native tab navigators keep each tab's screen
+  mounted, so switching tabs preserves scroll and state for free. The web
+  unmounts and remounts on navigation unless you deliberately keep state in the
+  URL or a store.
+- **Modals and gestures.** Native modals and the swipe-back gesture are
+  first-class navigator features; on the web you rebuild them, and a modal that
+  isn't a route can't be linked to or dismissed with back.
+- **The URL.** Native has none by default. To get deep links, push-notification
+  targets, and "share this screen," you design a **linking config** that maps a
+  URL scheme to screens and params, which is the work the web gets for free.
+
+<DoDont>
+  <Do title="Use each platform's native model">
+    Make the URL the source of truth on the web (typed routes and search params);
+    compose real navigators on native and add a linking config for deep links.
+    Map the two by concept, not by forcing one to imitate the other.
+  </Do>
+  <Dont title="Port one model onto the other">
+    Don't rebuild a URL router on native, or treat web routes like an imperative
+    `navigate()` stack. Faking the foreign model means losing the platform
+    affordances (hardware back, tab persistence, real history) that come free
+    with the native one.
+  </Dont>
+</DoDont>
+
+## The tools
+
+The split shows up directly in what you reach for.
+
+<PlatformTabs>
+  <Platform label="Web">
+    A URL router: TanStack Router or React Router. You declare routes and nested
+    layouts, read typed search params, and lean on the browser's history and back
+    button. Deep linking, refresh, and "copy the link" are inherent because
+    every view already has a URL. See
+    <a href="/docs/app-screens/navigation/url-as-state">URL as state</a> for what
+    belongs in those params.
+  </Platform>
+  <Platform label="React Native">
+    A navigator library: React Navigation, or Expo Router (file-based routes on
+    top of it). You compose stack / tab / drawer navigators and design a linking
+    config so external URLs resolve to screens. Push/pop, the swipe-back gesture,
+    and per-tab state persistence come from the navigator, not from you.
+  </Platform>
+</PlatformTabs>
+
+The chrome that exposes these models is the
+<a href="/docs/app-screens/navigation/nav-pattern-picker">nav pattern picker</a>'s
+job (a sidebar is a web instinct, a bottom tab bar a native one), and the
+list-pushes-to-detail fold in
+<a href="/docs/app-screens/layouts/master-detail">master-detail</a> is exactly
+where the web rebuilds what a native stack navigator hands you.
+
+<Callout variant="tip" title="This page, in one line">
+  Web navigation is a tree of URLs with nested layouts; native navigation is a
+  tree of navigators with no URL until you add a linking config. Map them by
+  concept and use each platform's real model rather than emulating the other.
+</Callout>
