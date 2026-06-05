@@ -36,7 +36,7 @@ that, so all unchecked.
 | ✅   | 13  | Routing & Navigation | Breadcrumbs & wayfinding                    | Content | Small page, clears up a recurring "do I need these"         |
 | ✅   | 14  | Layouts & Archetypes | Responsive app-shell behavior              | Content | Where shell meets RN/responsive — the adaptive shell        |
 | ✅   | 15  | Layouts & Archetypes | Master-detail / multi-pane layouts         | Content | The list+detail archetype, and how it folds on mobile       |
-| ☐    | 16  | Rendering & Delivery | ISR & partial pre-rendering (PPR)          | Content | The "mostly static, partly dynamic" middle ground           |
+| ✅   | 16  | Rendering & Delivery | ISR & partial pre-rendering (PPR)          | Content | The "mostly static, partly dynamic" middle ground           |
 | ✅   | 17  | Layouts & Archetypes | Empty & first-run dashboards               | Content | Extends Empty States up to the whole-screen scale           |
 | ✅   | 18  | All                  | Diagram component for delivery timelines   | Feature | Rendering/hydration are visual; a reusable diagram block helps |
 
@@ -109,7 +109,11 @@ visible-vs-interactive consequence of each.
 **Why:** The actual day-job decision once rendering strategy is chosen, and it
 extends the Query material already used in loading states up to the route scale.
 
-## 16. ISR & partial pre-rendering (PPR) — [Content]
+## 16. ISR & partial pre-rendering (PPR) — [Content] ✅ Done
+
+> Shipped as `app-screens/rendering/isr-ppr.mdx` with two `Timeline`s (ISR
+> stale-while-revalidate; PPR static-shell-plus-streamed-holes), a when-each-wins
+> table, and the "ISR serves stale by design" warning.
 
 The middle ground: mostly static, partly dynamic. Incremental regeneration,
 stale-while-revalidate semantics, and PPR's static-shell-plus-streamed-holes

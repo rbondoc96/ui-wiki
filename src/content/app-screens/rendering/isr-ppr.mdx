@@ -1,0 +1,120 @@
+---
+title: ISR & partial pre-rendering
+section: Rendering & Delivery
+library: app-screens
+order: 12
+description: The middle ground between fully static and fully dynamic. ISR lets static pages update on a schedule; PPR serves a static shell and streams the dynamic holes — so "static vs dynamic" stops being a binary.
+---
+
+import { Timeline } from "#/components/docs/timeline.tsx"
+
+The <a href="/docs/app-screens/rendering/decision-rubric">rubric</a> lays the
+strategies on a line from fully static (SSG) to fully dynamic (SSR). ISR and PPR
+live in the middle: they keep the instant paint of static while letting parts of
+the page be fresh or personalized. They're what stops "static vs. dynamic" from
+being an all-or-nothing choice.
+
+## ISR — incremental static regeneration
+
+ISR is SSG that's allowed to update. Pages are built statically and served from
+cache, but after a **revalidation window** the next request serves the cached
+copy _and_ triggers a background rebuild, so the version after it is fresh. It's
+stale-while-revalidate at the page level: everyone gets an instant response, and
+the cache catches up behind them.
+
+<Timeline
+  caption="ISR: every request is served instantly from cache; after the window, a request triggers a background rebuild and later visitors get the fresh copy."
+  lanes={[
+    { label: "early hit", segments: [{ tone: "live", label: "serve cached", width: 22 }, { tone: "busy", label: "rebuild in background", width: 48 }, { tone: "wait", width: 30 }] },
+    { label: "later hit", segments: [{ tone: "wait", width: 70 }, { tone: "live", label: "serve fresh", width: 30 }] },
+  ]}
+  markers={[{ at: 70, label: "cache refreshed" }]}
+/>
+
+The lever is the revalidation policy: a time interval (revalidate every N
+seconds) or **on-demand** invalidation (rebuild when the content actually
+changes, triggered by a webhook or a mutation). The trade is staleness, between a
+rebuild being triggered and finishing, some visitors see the old page.
+
+## PPR — partial pre-rendering
+
+PPR splits a single page into a **static shell** that's prerendered at build time
+and **dynamic holes** that are streamed in per request. The shell, layout,
+nav, anything that doesn't depend on the request, paints and goes interactive
+instantly; the personalized or live regions stream into their slots, exactly like
+<a href="/docs/app-screens/rendering/streaming-ssr">streaming SSR</a>, but with a
+build-time frame instead of a server-rendered one.
+
+<Timeline
+  caption="PPR: the static shell is prerendered and served instantly; the dynamic holes stream in per request into their reserved slots."
+  lanes={[
+    { label: "static shell", segments: [{ tone: "live", label: "prerendered shell — visible + interactive", width: 100 }] },
+    { label: "dynamic hole", segments: [{ tone: "wait", label: "reserved slot", width: 18 }, { tone: "busy", label: "stream personalized data", width: 47 }, { tone: "live", label: "filled", width: 35 }] },
+  ]}
+  markers={[{ at: 18, label: "shell ready" }, { at: 65, label: "hole filled" }]}
+/>
+
+## When each beats the extremes
+
+Both exist because full SSG and full SSR each leave money on the table for
+mostly-static content.
+
+| Content shape                                   | Reach for | Instead of                          |
+| ----------------------------------------------- | --------- | ----------------------------------- |
+| Mostly static, changes occasionally, SEO matters | **ISR**   | SSR (rebuilding identical HTML each hit) |
+| Static frame, a few per-user or live regions    | **PPR**   | SSR-ing the whole page for a few holes   |
+| Truly static, never changes                     | SSG       | ISR (no revalidation needed)        |
+| Per-request everywhere                          | SSR       | ISR/PPR (nothing static to cache)   |
+
+<DoDont>
+  <Do title="Use the middle ground for mostly-static pages">
+    Reach for ISR when a page is static most of the time but can't be rebuilt
+    manually on every change, and PPR when a static frame surrounds a few dynamic
+    regions. Both keep the instant paint that full SSR throws away.
+  </Do>
+  <Dont title="Force the binary">
+    SSR-ing a page that changes hourly rebuilds identical HTML on every request;
+    SSG-ing it ships stale content with no path to update. If the page is mostly
+    static with some freshness, the middle ground is the point.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="ISR serves stale by design">
+  Stale-while-revalidate means some requests get the old page until the rebuild
+  lands, which is fine for a blog or a catalog and wrong for anything a user must
+  see updated **now** — their own just-saved change, a balance, an order status.
+  Render per-user, must-be-current data dynamically (SSR or a client fetch), and
+  reserve ISR for content where a few seconds of staleness is invisible.
+</Callout>
+
+## Web vs. native
+
+<PlatformTabs>
+  <Platform label="Web">
+    ISR and PPR are server/framework features (Next's `revalidate` and on-demand
+    revalidation; PPR's prerendered shell plus streamed dynamic segments). They
+    sit on a CDN/edge cache, so the win is serving static-fast HTML that's still
+    allowed to be fresh or partly dynamic.
+  </Platform>
+  <Platform label="React Native">
+    There's no build-time HTML cache to incrementally regenerate. The rhyming idea
+    is client-side **stale-while-revalidate**: TanStack Query's `staleTime` serves
+    cached data instantly and refetches in the background, and a prefetched or
+    bundled "shell" screen can render immediately while per-user data streams in
+    on mount. Same instinct (instant from cache, freshen behind), different layer.
+  </Platform>
+</PlatformTabs>
+
+This closes the rendering spectrum the
+<a href="/docs/app-screens/rendering/decision-rubric">rubric</a> opened: PPR
+borrows its dynamic holes from
+<a href="/docs/app-screens/rendering/streaming-ssr">streaming</a>, and ISR's
+serve-now-refresh-later is the page-level twin of the
+<a href="/docs/app-screens/rendering/data-fetching">cache-and-revalidate</a> rule
+at the data layer.
+
+<Callout variant="tip" title="This page, in one line">
+  ISR serves static pages from cache and rebuilds them in the background on a
+  schedule; PPR serves a static shell and streams dynamic holes per request —
+  both keep static-fast paint for content that's only mostly static.
+</Callout>
