@@ -1,0 +1,219 @@
+---
+title: Multi-Step Forms
+section: Forms
+order: 2
+description: Splitting a form into steps trades one long page for a guided sequence. The hard parts aren't the steps — they're the state that survives navigation and the errors that arrive at the wrong moment.
+---
+
+A multi-step form (a "wizard") breaks a large task into a guided sequence. Done
+well, it lowers the perceived effort of a long form and lets you branch on
+earlier answers. Done badly, it traps data on screens the user can't get back
+to, validates in ways that block them, and reports errors for step one while
+they're staring at step three. The steps are the easy part; the state and the
+error timing are where it's won or lost.
+
+## When to go multi-step
+
+Splitting has a real cost — more navigation, more state, more ways to strand the
+user. Pay it only when the form earns it.
+
+<DoDont>
+  <Do title="Split on length, phases, or branching">
+    Reach for steps when the form is genuinely long, divides into distinct
+    phases (account → shipping → payment), or branches so that later fields
+    depend on earlier answers. Each step should be a coherent chunk.
+  </Do>
+  <Dont title="Paginate a short form">
+    Five fields across three screens is three times the clicks for no benefit.
+    If it fits on one screen without scrolling forever, keep it on one screen.
+  </Dont>
+</DoDont>
+
+## Validate forward, never block backward
+
+Each step should be valid before the user advances — otherwise you collect
+broken data and surface it screens later. But that gate is **one-directional**:
+moving back must always be free, and it must never discard what they've entered.
+
+<DoDont>
+  <Do title="Gate Next, keep Back open">
+    Validate the current step's fields when the user presses Next; if they pass,
+    advance. Back navigates immediately, with every field still filled in.
+  </Do>
+  <Dont title="Re-validate on the way back">
+    Blocking Back because the *current* step is incomplete traps the user — they
+    can't return to fix the very thing they went back for. Never validate as a
+    condition of going backward.
+  </Dont>
+</DoDont>
+
+## One source of truth across steps
+
+The defining bug of multi-step forms is data that doesn't survive navigation:
+the user fills step one, moves to step two, comes back, and step one is blank.
+Keep **one** form-state object for the whole flow; each step reads and writes its
+slice of it. With TanStack Form that's a single `useForm` instance lifted above
+all the steps, not one form per screen.
+
+<Callout variant="tip" title="Warn before abandonment">
+  A half-finished wizard is real work the user can lose to a stray Back button
+  or a closed tab. Warn before they navigate away with unsaved progress
+  (`beforeunload` on web, the navigation-blocker on native), and for long flows
+  consider persisting a draft so a reopened form picks up where they left off.
+</Callout>
+
+## Show where they are — honestly
+
+The user needs to know how far along they are and how much is left. A stepper or
+a "Step 2 of 4" label both work; what matters is that the count is truthful.
+
+- **Don't lie about the total.** If a branch can add steps, don't show "Step 2 of
+  3" and then surprise them with a fourth. Show a range, or omit the total, but
+  don't promise a finish line you'll move.
+- **Let them jump back to visited steps.** A clickable stepper that returns to
+  any *completed* step is a fast edit path. Leave *future* steps unreachable
+  until their prerequisites are met.
+
+## End with a review step
+
+For anything consequential — a purchase, an application — the last step before
+submit should summarize everything entered, with a way to jump back and edit each
+section. The user commits once, at the end, seeing the whole picture.
+
+## Errors arrive at the wrong step
+
+The hardest case: the user is on step three, presses submit, and the server
+rejects something from step one (the email is taken, the promo code is invalid).
+A generic banner on step three is useless — the field they need is two screens
+back.
+
+<DoDont>
+  <Do title="Route the user to the failing field">
+    Map the server error to its field, jump the wizard back to that step, and
+    focus the field — so the fix is one edit away, not a scavenger hunt.
+  </Do>
+  <Dont title="Show the error where submit was pressed">
+    A "Something went wrong" on the final step, when the cause is a step-one
+    field, leaves the user to guess which screen and which input to fix.
+  </Dont>
+</DoDont>
+
+## One form instance, gated steps, with TanStack Form
+
+A single `useForm` holds all steps' data. Advancing means validating only the
+current step's fields — `form.validateField` per field, or grouping a step's
+field names — and bumping the step index. Back just decrements it.
+
+```tsx
+import { useForm } from "@tanstack/react-form"
+import { useState } from "react"
+
+const STEPS = [["email", "password"], ["address", "zip"], ["card"]] as const
+
+function CheckoutWizard() {
+  const [step, setStep] = useState(0)
+  const form = useForm({
+    defaultValues: { email: "", password: "", address: "", zip: "", card: "" },
+    onSubmit: async ({ value }) => {
+      const res = await checkout(value)
+      if (res.error === "email_taken") {
+        // Server rejected a step-1 field while we're on the last step:
+        // surface it and route the user back to fix it.
+        form.setFieldMeta("email", (m) => ({
+          ...m,
+          errors: ["That email is already registered — try signing in."],
+        }))
+        setStep(0)
+      }
+    },
+  })
+
+  async function next() {
+    const fields = STEPS[step]
+    const results = await Promise.all(
+      fields.map((name) => form.validateField(name, "submit"))
+    )
+    const stepValid = results.every((errors) => errors.length === 0)
+    if (stepValid) setStep((s) => s + 1) // gate forward only
+  }
+
+  const isLast = step === STEPS.length - 1
+
+  return (
+    <div>
+      <p aria-live="polite">Step {step + 1} of {STEPS.length}</p>
+
+      {/* render the current step's fields from `form.Field`… */}
+
+      <div className="actions">
+        {step > 0 && (
+          <button onClick={() => setStep((s) => s - 1)} type="button">
+            Back {/* never validated — always available */}
+          </button>
+        )}
+        {isLast ? (
+          <button onClick={() => form.handleSubmit()} type="button">
+            Place order
+          </button>
+        ) : (
+          <button onClick={next} type="button">
+            Next
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+```
+
+## Cross-platform: a swap vs. a stack
+
+On the web a wizard is usually one screen swapping its step content. On React
+Native the idiom is often a real navigation stack — each step is a screen — which
+changes how Back, the keyboard, and drafts behave. The form state still lives in
+one `useForm` instance above the navigator, so the logic is shared either way.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Steps are conditional content in one route; you control history. Decide
+    whether Back/Forward should move between steps (deep-linkable, but you own
+    the popstate handling) or whether the wizard is a single history entry.
+
+    ```tsx
+    {step === 0 && <AccountStep form={form} />}
+    {step === 1 && <ShippingStep form={form} />}
+    {/* Warn on accidental exit with unsaved progress */}
+    useBeforeUnload(form.state.isDirty && !submitted)
+    ```
+  </Platform>
+  <Platform label="React Native">
+    Steps are screens in a stack navigator. The hardware/gesture Back now drives
+    step navigation, so intercept it; the keyboard covers fields per screen
+    (`KeyboardAvoidingView`); and an app can be backgrounded mid-flow, so persist
+    a draft to `AsyncStorage` to survive a cold start.
+
+    ```tsx
+    // Block accidental back-out; persist progress for interruptions.
+    useFocusEffect(() => {
+      const sub = navigation.addListener("beforeRemove", (e) => {
+        if (!form.state.isDirty || submitted) return
+        e.preventDefault()
+        confirmDiscard(() => navigation.dispatch(e.data.action))
+      })
+      return sub
+    })
+    useEffect(() => {
+      AsyncStorage.setItem("checkout-draft", JSON.stringify(form.state.values))
+    }, [form.state.values])
+    ```
+  </Platform>
+</PlatformTabs>
+
+## Where to go next
+
+Every rule from [Basic Forms](/docs/forms/basic-forms) — validation timing,
+reserved error slots, enabled submit, server-error mapping — still applies inside
+each step. For the submit and Next buttons' pending behavior, see [Button
+Anatomy](/docs/components/button-anatomy); for confirming a successful submit
+without stealing focus, [Loading & Optimistic
+States](/docs/patterns/loading-states).

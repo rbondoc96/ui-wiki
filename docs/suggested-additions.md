@@ -10,7 +10,7 @@ often you'll actually reach for it.
 | Done | #   | Item                                          | Type        | Why it ranks here                                          |
 | ---- | --- | --------------------------------------------- | ----------- | ---------------------------------------------------------- |
 | ☐    | 1   | Live, editable code playground                | Feature     | Force multiplier — every component page gets better        |
-| ☐    | 2   | Forms & validation patterns                   | Content     | Most-referenced, most-gotten-wrong UX surface              |
+| ✅   | 2   | Forms & validation patterns                   | Content     | Most-referenced, most-gotten-wrong UX surface              |
 | ✅   | 3   | Web ↔ React Native tabs                       | Both        | Unique to your stack; nobody else's wiki has it            |
 | ☐    | 4   | Overlays: dialog / sheet / popover            | Content     | Focus traps, scroll lock, mobile sheets — easy to botch    |
 | ✅   | 5   | Loading, skeleton & optimistic states         | Content     | The states most devs skip and most users feel              |
@@ -38,7 +38,29 @@ is letting readers **edit and run** React inline (Sandpack, or a lightweight
 component page becomes a lab instead of a reference. It's also the thing a
 React-loving author will get the most personal use out of when prototyping.
 
-## 2. Forms & validation patterns — [Content]
+## 2. Forms & validation patterns — [Content] ✅ Done
+
+> Shipped as its own **Forms** section (`src/content/forms/`) rather than a
+> single page, since the topic is section-sized and has obvious room to grow
+> (validation deep-dive, error copy, autosave). Initial scope is the two pages
+> reached for most:
+>
+> - `basic-forms.mdx` — field anatomy + reserved error slot, the "validate late,
+>   re-validate eager" timing rule, error copy, required-vs-optional, the
+>   disabled-submit anti-pattern, and submission as a state machine.
+> - `multi-step-forms.mdx` — when to split, forward-only step validation, one
+>   source of truth across steps, honest progress, a review step, and routing
+>   submit-time server errors back to the offending step/field.
+>
+> Code examples anchor on **TanStack Form** (consistent with the TanStack Query
+> usage in `loading-states.mdx`); both pages use `<DoDont>`, `<Callout>`, and
+> `<PlatformTabs>`, with the Web↔RN tabs reserved for where the two genuinely
+> diverge (no `<form>`/`onSubmit` and `KeyboardAvoidingView` on RN; wizard as a
+> nav stack with `AsyncStorage` draft persistence). Section slots between Data
+> and Patterns in the Building Blocks sidebar (items ordered 1–2).
+>
+> Still open as future pages in this section: standalone validation patterns,
+> error-copy guidelines, and autosave.
 
 When to validate (on blur vs submit vs change), inline vs summary errors, error
 copy, required vs optional marking, disabled-submit anti-pattern, async/server

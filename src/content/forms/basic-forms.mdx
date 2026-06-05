@@ -1,0 +1,264 @@
+---
+title: Basic Forms
+section: Forms
+order: 1
+description: "A form is a conversation. Most form pain isn't the inputs — it's the defaults around them: when you validate, how errors read, and what the submit button does."
+---
+
+A form is the most interactive surface most apps have, and the one where small
+defaults decide whether it feels helpful or hostile. The inputs are rarely the
+problem. The problem is the UX *around* them — when validation fires, how errors
+read, whether the user can even tell what's required, and what happens when they
+press submit. Get those right and the form gets out of the way.
+
+## Anatomy of a field
+
+A field is more than an input. Every field has four parts, and skipping one is
+where most form bugs start.
+
+| Part            | Rule                                                          |
+| --------------- | ------------------------------------------------------------- |
+| **Label**       | Always visible, always tied to the input. Never a placeholder. |
+| **Input**       | The control itself, in a clear default/focus/error/disabled state. |
+| **Help text**   | Optional hint *before* the user errs — format, why you ask.    |
+| **Error slot**  | Reserved space, even when empty, so the layout doesn't jump.   |
+
+<DoDont>
+  <Do title="Reserve the error slot">
+    Lay out the field with room for one line of error text from the start. When
+    an error appears, nothing below it moves — the eye stays where it was.
+  </Do>
+  <Dont title="Insert errors on the fly">
+    Injecting an error node pushes every field below it down. The user's target
+    moves mid-interaction, and a form that's erroring in several places
+    "jitters" as messages come and go.
+  </Dont>
+</DoDont>
+
+<Callout variant="warning" title="The placeholder is not a label">
+  Placeholder text vanishes the moment the user types, takes the field's
+  accessible name with it, and fails contrast in most designs. Use a real,
+  persistent label; if you need an example value, that's help text.
+</Callout>
+
+## Validate late, re-validate eager
+
+The single most-gotten-wrong decision is *when* to validate. Validate too early
+and you yell "invalid email" at someone who's typed one character. Validate too
+late and they only learn at submit. The fix is to change strategy per field over
+its lifetime.
+
+| Phase                          | Strategy   | Why                                          |
+| ------------------------------ | ---------- | -------------------------------------------- |
+| Before the field is touched    | Don't      | Nothing to correct yet — silence is correct. |
+| First blur (left the field)    | Validate   | They've committed an answer; now it's fair.  |
+| After it has errored once      | On change  | Give live feedback as they fix it.           |
+| Submit                         | Validate all | Catch untouched fields in one pass.        |
+
+That's the rule in one line: **validate on blur, then re-validate on change once
+a field is in an error state, and validate everything on submit.**
+
+<DoDont>
+  <Do title="Wait for blur, then go live">
+    Let the user finish typing before the first verdict. Once they've seen an
+    error, switch that field to on-change so the message clears the instant
+    they've fixed it.
+  </Do>
+  <Dont title="Validate every keystroke from the start">
+    Erroring on the first character of an email or password reads as the form
+    fighting the user. The message is "wrong" for most of the time it's visible.
+  </Dont>
+</DoDont>
+
+## Error copy: what's wrong *and* how to fix it
+
+An error that only says something failed makes the user do the diagnosis.
+Good error copy names the problem and points at the fix, in plain language, next
+to the field that owns it.
+
+| Instead of…            | Write…                                                 |
+| ---------------------- | ------------------------------------------------------ |
+| "Invalid input"        | "Enter an email like name@example.com"                 |
+| "Password error"       | "Use at least 8 characters, including a number"        |
+| "This field is required" | "Add your billing ZIP so we can verify the card"     |
+
+For long forms, pair inline errors with a **summary** at the top that links to
+each failing field — so a user who submits a 20-field form isn't left scrolling
+to hunt for the three reds.
+
+## Mark the minority
+
+Asterisking every required field on a form where everything is required is
+noise. Mark whichever set is smaller, and tell the user which convention you're
+using.
+
+<DoDont>
+  <Do title="Label the smaller set, with a legend">
+    If most fields are required, mark the few **(optional)** ones in text. If
+    most are optional, use a `*` on the required few and show one legend: "*
+    indicates a required field."
+  </Do>
+  <Dont title="Asterisk everything">
+    A form where every label has a `*` has communicated nothing — the marker
+    only carries meaning when it distinguishes some fields from others.
+  </Dont>
+</DoDont>
+
+## Don't disable the submit button
+
+It's tempting to keep submit disabled until the form is valid. It's also one of
+the most user-hostile patterns on the web: a disabled button gives no reason,
+isn't focusable for screen-reader users, and leaves people clicking a dead
+control with no idea what's missing.
+
+<DoDont>
+  <Do title="Keep submit enabled; validate on press">
+    Let the user submit whenever they want. If the form is invalid, run
+    validation, show the errors, and move focus to the first failing field.
+  </Do>
+  <Dont title="Disable submit until valid">
+    The user can't tell *why* it's disabled, can't tab to it, and gets no
+    feedback from clicking. You've hidden the problem instead of explaining it.
+  </Dont>
+</DoDont>
+
+## Submission is a state machine
+
+Pressing submit isn't one moment — it's pending, then success or failure, and
+each needs a treatment.
+
+- **Pending** — disable the button (this is the *one* time disabling submit is
+  right: to prevent a double-submit), show a spinner in place, and keep the form
+  readable. See [Button Anatomy](/docs/components/button-anatomy) for the
+  in-flight button details and `aria-busy`.
+- **Success** — confirm it. Navigate, show a toast, or swap to a done state — but
+  never leave the user wondering whether it worked.
+- **Server / async errors** — the field passed client validation but the server
+  rejected it (email already taken, card declined). Map those back onto the
+  specific field, not just a generic banner, so the fix is obvious.
+
+## Tying it together with TanStack Form
+
+TanStack Form gives you the timing rules above as configuration —
+`onBlur`/`onChange` validators per field, a submit handler, and per-field error
+state — without you wiring the lifecycle by hand.
+
+```tsx
+import { useForm } from "@tanstack/react-form"
+
+function SignupForm() {
+  const form = useForm({
+    defaultValues: { email: "" },
+    onSubmit: async ({ value }) => {
+      const res = await signup(value)
+      // Map a server rejection back onto the field that owns it.
+      if (res.error === "email_taken") {
+        form.setFieldMeta("email", (m) => ({
+          ...m,
+          errors: ["That email is already registered — try signing in."],
+        }))
+      }
+    },
+  })
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        form.handleSubmit() // validates all fields; focuses the first error
+      }}
+    >
+      <form.Field
+        name="email"
+        validators={{
+          // Fair feedback: first verdict on blur…
+          onBlur: ({ value }) =>
+            /.+@.+\..+/.test(value)
+              ? undefined
+              : "Enter an email like name@example.com",
+          // …then live as they fix it.
+          onChange: ({ value, fieldApi }) =>
+            fieldApi.state.meta.errors.length && !/.+@.+\..+/.test(value)
+              ? "Enter an email like name@example.com"
+              : undefined,
+        }}
+      >
+        {(field) => (
+          <div className="field">
+            <label htmlFor={field.name}>Email</label>
+            <input
+              id={field.name}
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+              type="email"
+              value={field.state.value}
+            />
+            {/* Error slot is always rendered; only the text is conditional. */}
+            <p className="field-error" role="alert">
+              {field.state.meta.errors[0] ?? " "}
+            </p>
+          </div>
+        )}
+      </form.Field>
+
+      <button disabled={form.state.isSubmitting} type="submit">
+        {form.state.isSubmitting ? "Creating account…" : "Create account"}
+      </button>
+    </form>
+  )
+}
+```
+
+## Cross-platform: the rules hold, the primitives change
+
+Every rule above — validation timing, reserved error slots, enabled submit,
+mapping server errors — applies identically on React Native. TanStack Form's
+core is renderer-agnostic, so your `useForm` logic and validators move over
+unchanged. What changes is the shell around the fields.
+
+<PlatformTabs>
+  <Platform label="Web">
+    There's a real `<form>` element. `onSubmit` fires on Enter and on button
+    click, the browser manages focus, and `type="email"`/`inputMode` hint the
+    soft keyboard for free.
+
+    ```tsx
+    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
+      <input type="email" autoComplete="email" />
+      <button type="submit">Create account</button>
+    </form>
+    ```
+  </Platform>
+  <Platform label="React Native">
+    There's no `<form>` and no implicit submit — submission is a `Button`/
+    `Pressable` `onPress`. Inputs are always controlled, the keyboard can cover
+    the field, and you advance focus manually with refs.
+
+    ```tsx
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <TextInput
+        autoComplete="email"
+        keyboardType="email-address"
+        onBlur={field.handleBlur}
+        onChangeText={field.handleChange}
+        onSubmitEditing={() => passwordRef.current?.focus()} // focus next
+        returnKeyType="next"
+        value={field.state.value}
+      />
+      <Pressable onPress={() => form.handleSubmit()}>
+        <Text>Create account</Text>
+      </Pressable>
+    </KeyboardAvoidingView>
+    ```
+  </Platform>
+</PlatformTabs>
+
+## Where to go next
+
+When a form outgrows a single screen — distinct phases, conditional branches, or
+just too many fields — it becomes a [Multi-Step Form](/docs/forms/multi-step-forms),
+which adds per-step validation and state that survives navigation. For the
+controls themselves, see [Select, Dropdown, Listbox &
+Combobox](/docs/components/select-dropdown-listbox-combobox); for the submit
+button's in-flight behavior, [Button Anatomy](/docs/components/button-anatomy).
