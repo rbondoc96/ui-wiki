@@ -1,0 +1,31 @@
+---
+title: Glossary
+section: Reference
+order: 100
+description: Quick definitions for the UI/frontend jargon that shows up across this wiki without ever getting spelled out in place.
+---
+
+A running reference for terms that get used as if everyone already knows them.
+Each entry is grouped by the area it comes from; cross-references point back to
+the page where the idea gets the full treatment.
+
+## Layout & structure
+
+### Chrome
+
+The framing/structural UI around content — labels, headings, buttons, nav —
+not the content itself, same root as "browser chrome" (the toolbar/tabs
+framing the page). See <a
+href="/docs/app-screens/navigation/route-architecture">layout routes</a>,
+which exist to render shared chrome once around many child views.
+
+## Internationalization (i18n)
+
+### Chrome locale vs. content locale
+
+Two locale choices a localized product keeps independent: the **chrome
+locale** is the framing UI's language (labels, buttons, nav — what gets
+translated), the **content locale** is whatever the user actually typed, left
+untouched. A French-UI user can still produce an English-chrome resume for an
+English employer this way — labels follow the *document* locale, body content
+stays exactly as authored.
