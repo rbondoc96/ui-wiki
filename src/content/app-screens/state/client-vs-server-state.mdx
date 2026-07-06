@@ -1,0 +1,250 @@
+---
+title: Client vs. server state
+section: State
+library: app-screens
+order: 22
+description: A data cache and a client store solve different problems. Server state is a cached copy of something a server owns; client state is state the app itself owns. Knowing which is which tells you whether to reach for a query library or a store.
+---
+
+Most "which state library?" arguments are really a categorization mistake. Before
+picking a tool, ask who owns the truth. Three owners cover almost everything, and
+each has a tool shaped for it:
+
+| Concern      | Owner          | Source of truth                                                       |
+| ------------ | -------------- | --------------------------------------------------------------------- |
+| Server state | A query cache  | A remote server. The local copy is a cache that goes stale.           |
+| Form state   | A form library | The user's in-progress edits, until submit.                           |
+| Client state | A client store | The app itself. There's no server to ask; the app _is_ the authority. |
+
+A query library (TanStack Query, RTK Query, SWR) is **a cache with a
+fetch-and-invalidate lifecycle**. Everything it's good at — deduping requests,
+tracking staleness, background refetch, retries, optimistic updates — assumes
+there's an async source you can re-ask. A form library (TanStack Form, React
+Hook Form) owns the transient edits to fields. A client store (Zustand, Jotai,
+Redux) owns state that has no server and isn't a form.
+
+The trap is using one for another's job: caching a filter selection in the query
+client, or mirroring server data into a store so it can drift out of sync with
+the cache that's supposed to own it.
+
+## When you actually need a client store
+
+If you already have a query library and a form library, a store earns its place
+only for state that is **client-owned** _and_ can't live comfortably in a
+component. Four distinct jobs, none of which a query cache does well:
+
+- **State with no server origin.** Filters, the active tab, a multi-step wizard's
+  progress, "which modal is open," a units toggle. No endpoint owns these, so
+  there's nothing to cache. Stuffing them into a query cache means abusing
+  `setQueryData` for data that never came from a query.
+- **State read or written outside React.** `store.getState()` works in an HTTP
+  interceptor, a token-refresh routine, a notification handler, or a socket
+  callback. A query cache is really only ergonomic _inside_ a component or hook.
+  Auth session is the classic case — dozens of unrelated subscribers, mutated
+  imperatively from non-React code.
+- **Event-sourced device or environment state.** Online/offline status, app
+  lifecycle, a value synced from a background source. These update by _events
+  pushing in_, not by _you pulling from a request_ — request/response caching is
+  the wrong shape.
+- **A durable client singleton with fine-grained subscriptions.** One source of
+  truth that many unrelated parts of the tree read, that persists across
+  restarts, and where you want components to re-render only on the slice they
+  select. Session, theme, and cart fit here.
+
+The second job is the one people underestimate. A store is a plain object with a
+`getState()` escape hatch, so the same state is reachable from inside a component
+_and_ from code that never renders:
+
+```tsx
+import { create } from "zustand"
+
+type SessionStore = {
+  token: string | null
+  setToken: (token: string | null) => void
+}
+
+export const useSessionStore = create<SessionStore>((set) => ({
+  token: null,
+  setToken: (token) => set({ token }),
+}))
+
+// Inside React: subscribe to a slice, re-render only when it changes.
+const token = useSessionStore((s) => s.token)
+
+// Outside React: an HTTP interceptor reads the same store synchronously.
+apiClient.interceptors.request.use((config) => {
+  const { token } = useSessionStore.getState()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+```
+
+A query cache has no clean equivalent of that last block — reading it outside a
+component means reaching into the client instance and knowing the exact key,
+which is exactly the ergonomic edge a store is for.
+
+<Callout variant="info" title="The one-question test">
+  Does client-owned state need to be reached by two components that aren't
+  parent and child, **or** touched from non-React code, **or** survive a
+  restart? If yes, it's a store. If it came from a server, it's a query. If it's
+  fields being edited, it's a form. If it's local to one subtree, it's
+  `useState` or context.
+</Callout>
+
+## Don't cache server data in a store
+
+The most common anti-pattern once a project has both tools: a hook fetches from
+the server, then pushes the result into a store — so the same data now lives in
+two caches that can disagree. The query cache thinks it owns freshness; the store
+holds a stale hand-copied snapshot. You lose refetch, invalidation, and dedup,
+and you own the sync bug forever.
+
+<DoDont>
+  <Do title="Let the query cache own server data">
+    Read server data through the query library everywhere it's needed. Selecting
+    or deriving from it is fine; copying it into a store is not. If you need the
+    data offline across restarts, persist the query cache itself rather than
+    shadowing it in a store.
+  </Do>
+  <Dont title="Mirror fetched data into a store">
+    A `fetch → setInStore` bridge turns one source of truth into two. The store
+    copy goes stale the moment the cache refetches, and now every screen reading
+    the store is showing data the cache already knows is old.
+  </Dont>
+</DoDont>
+
+The fix is almost always _deletion_ — the store layer is pure overhead once the
+cache already holds the data:
+
+<CodeTabs>
+  <CodeTab label="Mirrored into a store — drifts">
+
+```tsx
+// ❌ Two caches for one fact. The store copy goes stale on refetch.
+function useProjects() {
+  const { data } = useQuery({
+    queryKey: ["projects"],
+    queryFn: fetchProjects,
+  })
+  const setProjects = useProjectStore((s) => s.setProjects)
+  useEffect(() => {
+    if (data) setProjects(data) // hand-copied snapshot
+  }, [data, setProjects])
+}
+
+// Elsewhere a component reads the mirror, not the cache:
+const projects = useProjectStore((s) => s.projects)
+```
+
+  </CodeTab>
+  <CodeTab label="Read from the cache">
+
+```tsx
+// ✅ One source of truth. Every reader gets fresh, deduped,
+// refetchable data — and the store disappears entirely.
+function useProjects() {
+  return useQuery({ queryKey: ["projects"], queryFn: fetchProjects })
+}
+
+// Every component reads the cache directly:
+const { data: projects } = useProjects()
+```
+
+  </CodeTab>
+</CodeTabs>
+
+## Web vs. React Native
+
+The four jobs above are identical on both platforms. What differs is **how much
+of that work something else already absorbs**, which moves the threshold for
+reaching for a store.
+
+<PlatformTabs>
+  <Platform label="Web">
+    The URL is a free global store, and it absorbs most view state. Filters,
+    sort, the selected item, the active tab — all belong in the address bar (see
+    <a href="/docs/app-screens/navigation/url-as-state">URL as state</a>), where
+    they're shareable and survive reload. Context covers per-subtree sharing,
+    and `localStorage` makes persistence synchronous and trivial. So you can go
+    surprisingly far on a query library + a form library + the URL before you
+    _need_ a store. Reach for one for genuine cross-tree singletons — session,
+    theme, cart — and for state you touch from non-React code. Before adding a
+    store, always ask first: **should this just be in the URL?**
+  </Platform>
+  <Platform label="React Native">
+    There's no URL. Navigation params are per-screen and awkward for shared
+    cross-screen state, so the state the web would park in the address bar has
+    nowhere else to go — a store fills it, and this is the single biggest reason
+    native reaches for one earlier. Persistence is async (AsyncStorage, MMKV)
+    with secrets in the keychain (SecureStore), so you need rehydration-on-boot,
+    which a store's persist middleware is built for. And rich device state —
+    online status, app foreground/background, background-synced values — plus
+    imperative reads from notification and deep-link handlers push you toward
+    stores for more concerns than on the web.
+  </Platform>
+</PlatformTabs>
+
+Rule of thumb: on the web, the escape hatch is the URL; on native, that hatch is
+missing, so the same state legitimately becomes a store. The categories don't
+change across platforms — the amount of state that has "nowhere else to live"
+does.
+
+Persistence is where the platform gap shows up in code. The same store swaps only
+its storage backend, but async storage on native means the store rehydrates
+_after_ first paint, so components must tolerate the pre-hydration default:
+
+<CodeTabs>
+  <CodeTab label="Web">
+
+```tsx
+import { create } from "zustand"
+import { createJSONStorage, persist } from "zustand/middleware"
+
+// localStorage is synchronous — no rehydration gap to design around.
+export const useThemeStore = create(
+  persist((set) => ({ theme: "system", setTheme: (theme) => set({ theme }) }), {
+    name: "theme",
+    storage: createJSONStorage(() => localStorage),
+  })
+)
+```
+
+  </CodeTab>
+  <CodeTab label="React Native">
+
+```tsx
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { create } from "zustand"
+import { createJSONStorage, persist } from "zustand/middleware"
+
+// AsyncStorage is async — the store rehydrates after first paint, so
+// `theme` is "system" for a beat on launch. Secrets go to SecureStore /
+// Keychain instead, never AsyncStorage.
+export const useThemeStore = create(
+  persist((set) => ({ theme: "system", setTheme: (theme) => set({ theme }) }), {
+    name: "theme",
+    storage: createJSONStorage(() => AsyncStorage),
+  })
+)
+```
+
+  </CodeTab>
+</CodeTabs>
+
+## Where forms fit
+
+A form library owns the in-progress edits and stops there. The moment the user
+submits, the data becomes a server mutation (the query library's job), and the
+draft is discarded. The only reason form state escapes into a store is when a
+draft must **outlive the screen** — a wizard whose steps unmount as you move
+between them, or a draft that survives leaving and returning. That's the seam
+covered in <a href="/docs/forms/multi-step-forms">multi-step forms</a> — the form
+library owns each step's fields; a store (or the URL) owns the progress that
+spans them.
+
+<Callout variant="tip" title="This page, in one line">
+  Server data belongs in a query cache, edited fields in a form, and the URL
+  holds shareable view state; a client store is for what's left — client-owned
+  state that's shared across the tree, touched outside React, or has to survive
+  a restart.
+</Callout>
