@@ -4,6 +4,11 @@ import { useRef, useState } from "react"
 import type { MDXComponents } from "mdx/types"
 import type { ComponentPropsWithoutRef, ReactNode } from "react"
 
+import {
+  CodeTab,
+  CodeTabs,
+  useInsideCodeTabs,
+} from "#/components/docs/code-tabs.tsx"
 import { Do, DoDont, Dont } from "#/components/docs/do-dont.tsx"
 import { Platform, PlatformTabs } from "#/components/docs/platform-tabs.tsx"
 import { cn } from "#/lib/utils.ts"
@@ -101,6 +106,12 @@ function CodeBlock({
   const [copied, setCopied] = useState(false)
   const language = props["data-language"]
 
+  // Inside `<CodeTabs>` the tab strip is the frame and the copy button lives in
+  // the shared header, so render a bare `<pre>` and skip our own chrome.
+  if (useInsideCodeTabs()) {
+    return <pre {...props}>{children}</pre>
+  }
+
   function copy() {
     const text = preRef.current?.textContent ?? ""
     void navigator.clipboard.writeText(text).then(() => {
@@ -145,6 +156,8 @@ export const mdxComponents: MDXComponents = {
   h3: (props) => <AnchoredHeading as="h3" {...props} />,
   pre: CodeBlock,
   Callout,
+  CodeTab,
+  CodeTabs,
   Do,
   DoDont,
   Dont,
