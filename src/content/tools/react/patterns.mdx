@@ -1,0 +1,202 @@
+---
+title: Patterns
+section: React
+library: tools
+order: 10
+appliesTo: React 19
+reviewed: 2026-06
+description: The React patterns worth having are picked by what they delete — effects, prop plumbing, duplicated logic, loading flags. Six habits that keep components boring.
+---
+
+[Gotchas](/docs/tools/react/gotchas) covers what breaks; this page is the
+positive shapes. Each pattern here earns its place by what it _deletes_ from
+your components, and each has a one-line trigger — reach for it when the
+trigger fires, not by default:
+
+| Pattern             | Reach for it when…                                       | It deletes            |
+| ------------------- | -------------------------------------------------------- | --------------------- |
+| Derive, don't sync  | A value is computable from existing props/state          | Effects + state       |
+| Colocate state      | Only one subtree reads a piece of state                  | Prop plumbing         |
+| Custom hooks        | The same state-plus-effect logic appears twice           | Duplicated mechanism  |
+| Reset via `key`     | New data identity should mean fresh UI state             | Field-by-field resets |
+| Suspense boundaries | Loading UI belongs to a region, not each component in it | `isLoading` flags     |
+| Measured memoizing  | The profiler says so, or a consumer needs stable refs    | Wasted re-renders     |
+
+## Derive, don't sync
+
+The default posture: **state holds the minimal facts; render computes
+everything else.** Every derived value you promote to state is a second copy
+that can disagree with the first, plus an effect to keep them aligned, plus a
+frame where they're misaligned anyway.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-you-might-not-need-an-effect", note: "Source of the store-the-id-derive-the-object move and the broader rule that derived values belong in the render body, not in synced state.", role: "adapted-from" }]}>
+
+```tsx
+// Store the minimal fact (which id), derive the rest every render.
+const [items, setItems] = useState<Array<Item>>([])
+const [selectedId, setSelectedId] = useState<string | null>(null)
+const selected = items.find((item) => item.id === selectedId) ?? null
+```
+
+Storing the `selected` _object_ instead would go stale the moment `items`
+refreshes — the classic two-copies bug. Storing the _id_ makes staleness
+impossible: the derivation re-runs on every render by construction. If a
+derivation is measurably expensive, that's the memoization trigger (last
+section), not a reason to promote it to state.
+
+</SourceTrail>
+</Pattern>
+
+## Colocate state; lift it late
+
+State should live in the **lowest component that needs it**, and move up only
+when a second, non-descendant reader appears — then only to the nearest common
+parent, not to the top. Lifting early feels like planning ahead; what it
+actually buys is a parent that re-renders on every keystroke, props threaded
+through components that don't care, and state you can't understand without
+scrolling.
+
+The discipline is directional: start local (`useState` in the component),
+lift one level when siblings genuinely share the fact, and only reach for
+context or a store when the plumbing itself becomes the problem. The
+escalation ladder past that point — and the "who owns the truth" test —
+is [Client vs. server state](/docs/app-screens/state/client-vs-server-state).
+
+<Callout variant="info" title="The cheap test">
+  Before lifting, name the second component that reads this state. Can't name
+  one? It doesn't move. "Might need it later" is how apps end up with a
+  God-parent holding forty unrelated <code>useState</code>s.
+</Callout>
+
+## Extract custom hooks around a purpose, not a size
+
+A custom hook is justified by a **nameable question it answers** —
+`useOnlineStatus`, `useDebouncedValue`, `useChatRoom` — never by a component
+having "too many lines." Extract when the same state-plus-effect mechanism
+appears in a second place, or when hiding the mechanism makes the component
+read as intent.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-reusing-logic-with-custom-hooks", note: "The extraction criteria (name a concrete purpose, hide the mechanism) and the hooks-share-logic-not-state distinction come from this guide.", role: "adapted-from" }]}>
+
+```tsx
+function useDebouncedValue<T>(value: T, ms: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), ms)
+    return () => clearTimeout(id)
+  }, [ms, value])
+  return debounced
+}
+
+// The caller states intent; the timer mechanism is invisible.
+const debouncedQuery = useDebouncedValue(query, 300)
+```
+
+The contract to keep straight: custom hooks share **logic, not state**. Two
+components calling `useDebouncedValue` get two independent debounced values —
+each call owns its own state. When you need _shared_ state, that's lifting or
+a store (previous section), not a hook.
+
+</SourceTrail>
+</Pattern>
+
+## Reset state with `key`
+
+The intentional use of the identity rule from
+[Gotchas](/docs/tools/react/gotchas): when new data identity should mean fresh
+UI state, say so with `key` and let React unmount and remount the subtree.
+The alternative — an effect watching the id and clearing each field by hand —
+is N resets that must be maintained in lockstep with the form, and it misses
+one eventually.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-preserving-and-resetting-state", note: "Documents key-driven identity as the supported, declarative way to reset a subtree's state.", role: "supports" }]}>
+
+```tsx
+// One attribute replaces every manual field reset — and can't miss one.
+<ProfileForm key={userId} userId={userId} />
+```
+
+This is declarative in the same sense render is: you describe _when_ state is
+fresh (new `userId`) instead of scripting _how_ to clean it (clear this field,
+that field, reset the scroll…). It also resets state you forgot existed —
+focus, uncontrolled inputs, child component state — which is exactly what "a
+different user's form" should mean.
+
+</SourceTrail>
+</Pattern>
+
+## Let Suspense own the waiting
+
+Per-component `isLoading` flags scatter the loading design across every
+component that fetches, and they compose badly — three siblings loading
+independently means three spinners popping at different times. Suspense
+inverts it: components declare _that_ they're waiting (by suspending), and a
+**boundary** decides what the region shows meanwhile.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-suspense", note: "Boundary behavior — nearest fallback wins, siblings under one boundary reveal together — is per the reference.", role: "supports" }]}>
+
+```tsx
+<Suspense fallback={<PageSkeleton />}>
+  <Header />
+  <Suspense fallback={<TableSkeleton />}>
+    <ProjectsTable /> {/* suspends via use() or a Suspense-enabled library */}
+  </Suspense>
+</Suspense>
+```
+
+Boundary placement is a **design decision, not plumbing**: everything under
+one boundary appears together; a nested boundary carves out a region that's
+allowed to arrive later. One boundary per meaningful unit of content — not
+per component, not one for the whole app. Which fallback to render inside it
+(skeleton vs. spinner, and when not to flash one) is
+[Loading & Optimistic States](/docs/patterns/loading-states).
+
+</SourceTrail>
+</Pattern>
+
+## Memoize after measuring
+
+The positive form of the gotcha: memoization is a tool with two triggers, and
+"this render function feels hot" is neither.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-use-memo", note: "Both legitimate triggers — measured-expensive calculations and referential stability for memoized consumers — are the reference's own criteria for when useMemo helps.", role: "supports" }]}>
+
+```tsx
+// Trigger 1: measured-expensive derivation (profiler said so).
+const visibleRows = useMemo(() => filterAndSort(rows, filters), [filters, rows])
+
+// Trigger 2: a consumer depends on referential stability.
+const handleSelect = useCallback((id: string) => setSelectedId(id), [])
+return <MemoizedTable onSelect={handleSelect} rows={visibleRows} />
+```
+
+Work the pipeline in order: first delete re-renders structurally — colocate
+state (above), pass expensive subtrees as `children` so they don't re-render
+with the parent — then profile, then memoize what the profiler names. A
+`memo`-wrapped child receiving one fresh object prop re-renders every time
+anyway; memoization only pays when the whole prop surface is stable, which is
+why it's applied deliberately to measured hot paths rather than sprinkled as
+seasoning.
+
+</SourceTrail>
+</Pattern>
+
+## Where to go next
+
+These patterns keep component-local state boring; the question of which state
+should be component-local at all is
+[Client vs. server state](/docs/app-screens/state/client-vs-server-state).
+For what each pattern protects you _from_, read the twins in
+[Gotchas](/docs/tools/react/gotchas).
+
+<Callout variant="tip" title="This page, in one line">
+  Store minimal facts and derive the rest, keep state low and lift late, extract
+  hooks around named purposes, reset identity with <code>key</code>, give
+  waiting to Suspense boundaries — and let the profiler, not vibes, decide what
+  gets memoized.
+</Callout>

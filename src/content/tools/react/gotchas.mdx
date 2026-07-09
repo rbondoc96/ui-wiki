@@ -1,0 +1,209 @@
+---
+title: Gotchas
+section: React
+library: tools
+order: 5
+appliesTo: React 19
+reviewed: 2026-06
+description: Most React bugs trace to two misunderstandings — treating render as an event to react to instead of a computation, and forgetting that React tracks identity by position, not intent.
+---
+
+React has one load-bearing idea: a render is a pure computation of the current
+props and state. Almost every recurring bug is a way of fighting that — either
+by treating renders as _events_ to sync against (gotchas 1–3), or by
+misreading how React decides _which_ state belongs to _which_ thing (gotchas
+4 and 6). The remaining one is a performance habit that costs more than it
+saves. Ordered by how often each ships to production.
+
+## Syncing state with an effect
+
+The single most common React bug shape: a `useEffect` watches some state and
+`setState`s a value derived from it. You get an extra render per change, and —
+worse — an intermediate frame where the derived value is stale. Chain two of
+these and you have a render cascade nobody can trace.
+
+The test is one question: **can this value be computed from props and state
+you already have?** Then it isn't state. It's a variable in the render body.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-you-might-not-need-an-effect", note: "The canonical treatment of this anti-pattern; the derived-during-render fix and the render-cascade cost are both drawn from it.", role: "adapted-from" }]}>
+
+```tsx
+// ❌ Two renders per keystroke, one of them showing a stale fullName.
+const [fullName, setFullName] = useState("")
+useEffect(() => {
+  setFullName(`${firstName} ${lastName}`)
+}, [firstName, lastName])
+
+// ✅ Derived during render — always consistent, nothing to sync.
+const fullName = `${firstName} ${lastName}`
+```
+
+State is for facts React can't recompute: what the user typed, what the server
+said. Everything downstream of those facts is a render-time expression.
+The positive version of this rule — including what to do when the derivation
+is expensive — is [Derive, don't sync](/docs/tools/react/patterns).
+
+</SourceTrail>
+</Pattern>
+
+## Dependency arrays aren't a re-run schedule
+
+An effect sees the props and state of the render it was created in — a
+snapshot, not a live reference. Omit a dependency and the effect keeps reading
+the old snapshot forever. The classic:
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-synchronizing-with-effects", note: "Establishes the mental model that each render's effect closes over that render's values, and that dependencies declare what the effect reads.", role: "supports" }]}>
+
+```tsx
+// ❌ `count` is frozen at 0 — the interval closure captured render #1.
+useEffect(() => {
+  const id = setInterval(() => setCount(count + 1), 1000)
+  return () => clearInterval(id)
+}, []) // lies: the effect reads `count` but declares nothing
+
+// ✅ Updater form removes the dependency instead of suppressing it.
+useEffect(() => {
+  const id = setInterval(() => setCount((c) => c + 1), 1000)
+  return () => clearInterval(id)
+}, [])
+```
+
+The dependency array is a **declaration of what the effect reads**, not a dial
+you tune until re-runs feel right. When the honest list re-runs too often, the
+list isn't the problem — the effect reads too much. Fix the reads: use the
+updater form, move static values out of the component, or split the effect.
+Suppressing the linter converts a visible re-run into an invisible stale bug.
+
+</SourceTrail>
+</Pattern>
+
+## StrictMode runs effects twice — that's the feature
+
+In development, StrictMode mounts, unmounts, and remounts every component, so
+each effect runs setup → cleanup → setup. Two WebSocket connections, two
+analytics pings, a duplicated subscription — in dev only. The reflex is to
+guard with a `didInit` ref. The reflex is wrong.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-synchronizing-with-effects", note: "Documents the dev-only remount, why it exists, and the setup/cleanup symmetry it's designed to verify.", role: "supports" }]}>
+
+```tsx
+// The double-invoke is a stress test: setup must be undone by cleanup.
+useEffect(() => {
+  const socket = connectToRoom(roomId)
+  return () => socket.disconnect() // without this, dev shows two connections
+}, [roomId])
+```
+
+The double-invoke simulates what production does anyway — unmount and remount
+on navigation, tab restore, or a `key` change. If your effect can't survive
+that symmetrically, it's broken; dev just tells you first. A ref guard doesn't
+fix the bug, it hides it until a real remount.
+
+</SourceTrail>
+</Pattern>
+
+## `key` decides whether state survives — in both directions
+
+React ties state to **position in the tree plus component type**, not to your
+data. That surprises in two directions: state _survives_ when you expected a
+reset, and state _dies_ when you expected it to follow the item.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-preserving-and-resetting-state", note: "Defines the position-plus-type identity rule and both failure modes: unwanted preservation across data changes, and index keys detaching state from items.", role: "defines" }]}>
+
+```tsx
+// ❌ Same component, same position → React keeps the state.
+// The half-typed draft for user A appears under user B.
+const broken =
+  activeId === "a" ? <ProfileForm userId="a" /> : <ProfileForm userId="b" />
+
+// ✅ Different key → different identity → fresh state per user.
+const fixed = <ProfileForm key={activeId} userId={activeId} />
+```
+
+The mirror image: `key={index}` in a reorderable list pins state to the _slot_
+instead of the item. Delete row 2 and row 3's expanded state, checkbox, or
+input draft slides up into it. Keys must name the data's identity, never its
+current position.
+
+</SourceTrail>
+</Pattern>
+
+<Callout variant="tip" title="Key rule of thumb">
+  Ask "when this data changes, should the UI state reset?" If yes, the data's
+  identity belongs in <code>key</code>. If the answer is "obviously" and there's
+  no key, that's the bug.
+</Callout>
+
+## Memoizing before measuring
+
+`useMemo` and `useCallback` are not a speed dial you turn up. Each one costs a
+comparison per render, memory for the cached value, and — the real price — a
+code path readers must now reason about. Wrapped around a cheap expression,
+memoization is pure overhead wearing an optimization costume.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-use-memo", note: "The reference is explicit that memoization is only valuable for expensive calculations or referential stability, and that most of it is unnecessary.", role: "supports" }]}>
+
+There are exactly two honest reasons to memoize:
+
+- **A measured-expensive computation.** Profiler says the calculation is slow
+  and it re-runs with unchanged inputs. Measured — not "looks expensive."
+- **Referential stability someone downstream depends on.** The value feeds a
+  `memo`-wrapped child, a dependency array, or a context value, where a fresh
+  object every render defeats the consumer.
+
+Neither applies? Delete the wrapper. `fullName.toUpperCase()` does not need a
+cache in front of it, and the `useCallback` around a handler nobody compares
+is noise. The full decision rule is in
+[Memoize after measuring](/docs/tools/react/patterns).
+
+</SourceTrail>
+</Pattern>
+
+## Hooks are identified by call order
+
+React has no idea which `useState` is "the email one." It matches each hook
+call to its state by **position in the call sequence** — first hook, second
+hook, third. A hook inside an `if`, a loop, or after an early return shifts
+every subsequent hook's position between renders, and state silently attaches
+to the wrong hook before React throws.
+
+<Pattern version="React 19" checked="2026-06">
+<SourceTrail refs={[{ id: "react-rules-of-hooks", note: "Defines the top-level-only rule and the call-order mechanism that makes conditional hooks corrupt state.", role: "defines" }]}>
+
+```tsx
+// ❌ Render #2 (user == null) skips the hook — every later hook misaligns.
+if (user) {
+  useEffect(() => trackVisit(user.id), [user.id])
+}
+
+// ✅ Hook always runs; the condition lives inside it.
+useEffect(() => {
+  if (user) trackVisit(user.id)
+}, [user])
+```
+
+Same rule, sneakier form: an early `return` above a hook is a conditional
+hook. All hooks first, then guards. The `react-hooks/rules-of-hooks` lint rule
+exists precisely because humans can't audit call order by eye — treat it as
+non-negotiable, error not warn.
+
+</SourceTrail>
+</Pattern>
+
+## Where to go next
+
+Every gotcha here has a positive twin — the habit that makes the mistake
+unrepresentable — in [Patterns](/docs/tools/react/patterns). For where async
+state should live in the first place (usually not in your components), see
+[Client vs. server state](/docs/app-screens/state/client-vs-server-state).
+
+<Callout variant="tip" title="This page, in one line">
+  A render is a computation, not an event — derive instead of sync; identity is
+  positional, not intentional — name it with <code>key</code> and keep hooks
+  unconditional; and measure before you memoize.
+</Callout>
