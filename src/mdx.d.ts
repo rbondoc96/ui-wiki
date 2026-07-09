@@ -11,6 +11,7 @@ declare module "*.mdx" {
   export interface Frontmatter {
     appliesTo?: string
     description?: string
+    group?: string
     library?: string
     order?: number
     reviewed?: string

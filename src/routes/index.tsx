@@ -1,8 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { ArrowRightIcon, SparkleIcon } from "@phosphor-icons/react"
 
-import type { NavSection } from "#/lib/docs.ts"
-import { librariesWithDocs, navTreeFor } from "#/lib/docs.ts"
+import type { Doc, NavSection } from "#/lib/docs.ts"
+import { librariesWithDocs, navTreeFor, sectionDocs } from "#/lib/docs.ts"
 
 export const Route = createFileRoute("/")({ component: Home })
 
@@ -13,7 +13,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 })
 
 function latestUpdate(section: NavSection): string | undefined {
-  const dates = section.items
+  const dates = sectionDocs(section)
     .map((doc) => doc.updated)
     .filter((d): d is string => Boolean(d))
   if (dates.length === 0) {
@@ -21,6 +21,19 @@ function latestUpdate(section: NavSection): string | undefined {
   }
   const newest = dates.reduce((a, b) => (a > b ? a : b))
   return dateFormatter.format(new Date(newest))
+}
+
+function DocRow({ doc }: { doc: Doc }) {
+  return (
+    <Link
+      to="/docs/$"
+      params={{ _splat: doc.slug }}
+      className="group flex items-center justify-between gap-2 rounded-md py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <span>{doc.title}</span>
+      <ArrowRightIcon className="size-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
+    </Link>
+  )
 }
 
 function Home() {
@@ -74,17 +87,24 @@ function Home() {
                   <ul className="mt-3 flex flex-col gap-1">
                     {section.items.map((doc) => (
                       <li key={doc.slug}>
-                        <Link
-                          to="/docs/$"
-                          params={{ _splat: doc.slug }}
-                          className="group flex items-center justify-between gap-2 rounded-md py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          <span>{doc.title}</span>
-                          <ArrowRightIcon className="size-3.5 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
-                        </Link>
+                        <DocRow doc={doc} />
                       </li>
                     ))}
                   </ul>
+                  {section.groups.map((group) => (
+                    <div key={group.title} className="mt-4">
+                      <p className="mb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                        {group.title}
+                      </p>
+                      <ul className="flex flex-col gap-1">
+                        {group.items.map((doc) => (
+                          <li key={doc.slug}>
+                            <DocRow doc={doc} />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>
