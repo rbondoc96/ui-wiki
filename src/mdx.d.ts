@@ -9,9 +9,11 @@ declare module "*.mdx" {
   import type { TocEntry } from "#/lib/mdx/remark-toc-slugs.ts"
 
   export interface Frontmatter {
+    appliesTo?: string
     description?: string
     library?: string
     order?: number
+    reviewed?: string
     section: string
     title: string
   }

@@ -10,7 +10,9 @@ import {
   useInsideCodeTabs,
 } from "#/components/docs/code-tabs.tsx"
 import { Do, DoDont, Dont } from "#/components/docs/do-dont.tsx"
+import { Pattern } from "#/components/docs/pattern.tsx"
 import { Platform, PlatformTabs } from "#/components/docs/platform-tabs.tsx"
+import { SourceTrail } from "#/components/docs/source-trail.tsx"
 import { cn } from "#/lib/utils.ts"
 
 function AnchoredHeading({
@@ -161,6 +163,8 @@ export const mdxComponents: MDXComponents = {
   Do,
   DoDont,
   Dont,
+  Pattern,
   Platform,
   PlatformTabs,
+  SourceTrail,
 }

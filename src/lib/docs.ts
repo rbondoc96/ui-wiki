@@ -12,9 +12,11 @@ interface MdxModule {
 
 export interface Doc {
   Component: ComponentType<{ components?: MDXComponents }>
+  appliesTo?: string
   description?: string
   library: string
   order: number
+  reviewed?: string
   section: string
   slug: string
   title: string
@@ -60,9 +62,11 @@ const docs: Array<Doc> = Object.entries(modules).map(([path, mod]) => {
   const slug = pathToSlug(path)
   return {
     Component: mod.default,
+    appliesTo: mod.frontmatter.appliesTo,
     description: mod.frontmatter.description,
     library: mod.frontmatter.library ?? DEFAULT_LIBRARY,
     order: mod.frontmatter.order ?? 0,
+    reviewed: mod.frontmatter.reviewed,
     section: mod.frontmatter.section,
     slug,
     title: mod.frontmatter.title,

@@ -12,6 +12,22 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 })
 
+const monthYearFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  timeZone: "UTC",
+  year: "numeric",
+})
+
+// `reviewed` is authored as a month-precision date (e.g. "2026-06") but may also
+// be a free-form label. Format parseable dates as "June 2026"; otherwise show
+// the raw value so odd inputs never crash the page.
+function formatReviewed(reviewed: string): string {
+  const parsed = new Date(reviewed)
+  return Number.isNaN(parsed.getTime())
+    ? reviewed
+    : monthYearFormatter.format(parsed)
+}
+
 export const Route = createFileRoute("/docs/$")({
   loader: ({ params }) => {
     const slug = params._splat ?? ""
@@ -51,6 +67,22 @@ function DocPage() {
           {doc.description ? (
             <p className="mt-2 text-base text-muted-foreground">
               {doc.description}
+            </p>
+          ) : null}
+          {(doc.appliesTo ?? doc.reviewed) ? (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground">
+              {doc.appliesTo ? (
+                <span>
+                  Applies to{" "}
+                  <span className="font-medium text-foreground">
+                    {doc.appliesTo}
+                  </span>
+                </span>
+              ) : null}
+              {doc.appliesTo && doc.reviewed ? <span>·</span> : null}
+              {doc.reviewed ? (
+                <span>reviewed {formatReviewed(doc.reviewed)}</span>
+              ) : null}
             </p>
           ) : null}
         </div>
