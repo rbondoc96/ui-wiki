@@ -1,0 +1,63 @@
+---
+title: Overview
+section: Frameworks
+library: tools
+order: 0
+reviewed: 2026-06
+description: Frameworks differ on a handful of axes that actually matter — reactivity model, state and effects, ecosystem and escape hatches. This category documents each one as opinionated field notes, not a docs mirror.
+---
+
+A UI framework, for this wiki's purposes, is the thing that owns the
+**render loop**: it decides when your view code re-runs, how state changes
+propagate into the DOM (or native views), and what lifecycle your side effects
+hang off of. Routers, query caches, and component kits orbit that core; they
+get their own pages elsewhere. This category is about the core.
+
+## The axes that actually differentiate frameworks
+
+Feature checklists converge — everything has components, everything has SSR
+now. What still separates frameworks is a short list:
+
+- **Reactivity and rendering model.** Re-run the whole component and diff
+  (React), or track fine-grained signals and patch (Solid, Vue, Svelte)? This
+  one decision shapes everything downstream — what "stale" means, what needs
+  memoizing, which bugs are even possible.
+- **How state and effects work.** Where state lives, what triggers an update,
+  and how side effects are scheduled against renders. Most day-to-day bugs
+  live here, which is why every framework's Gotchas page is mostly this.
+- **Ecosystem and escape hatches.** How deep the library bench is, and how
+  gracefully you can drop below the abstraction — raw DOM, native modules,
+  imperative handles — when the framework's model doesn't fit the problem.
+
+Pick and judge by these, not by benchmark bar charts or feature parity — the
+[Compare & Choose](/docs/tools/frameworks/compare) page turns these axes into
+a decision lens.
+
+## How this category is organized
+
+Each framework gets two pages, deliberately shaped:
+
+- **Gotchas** — what breaks, ordered by how often it ships to production.
+- **Patterns** — the positive shapes, each earning its place by what it
+  deletes from your code.
+
+Version-specific claims inside them are stamped with the version they were
+checked against and cited back to primary sources — when a framework moves,
+the stamps tell you what needs re-verifying. So far the roster is one:
+React's [Gotchas](/docs/tools/react/gotchas) and
+[Patterns](/docs/tools/react/patterns). More land as they're documented.
+
+<Callout variant="info" title="Field notes, not a docs mirror">
+  These pages don't restate what a framework's documentation already says well.
+  They record what we've seen break, the habits that prevent it, and the
+  opinions the official docs are too polite to have. When you need the API
+  surface, read the docs; when you need to not ship the bug, read here.
+</Callout>
+
+## Where to go next
+
+Deciding _between_ frameworks — or defending the one you have — is
+[Compare & Choose](/docs/tools/frameworks/compare). And because framework
+choice and rendering strategy constrain each other (a framework is only as
+good as the CSR/SSR/streaming story you need it for), read it alongside
+[Rendering & Delivery](/docs/app-screens/rendering).

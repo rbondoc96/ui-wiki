@@ -1,0 +1,126 @@
+---
+title: Compare & Choose
+section: Frameworks
+library: tools
+order: 10
+description: Framework choice is won or lost on team familiarity, ecosystem depth, and maintenance cost — not benchmarks. The criteria to judge any framework against, with React as the worked example.
+---
+
+Most framework debates argue the wrong layer: syntax taste and benchmark
+deltas, when the costs that actually compound are staffing, ecosystem gaps,
+and the migration you'll face in year four. This page is the **lens** — the
+axes to judge any candidate against — not a filled-in matrix ranking
+contenders.
+
+<Callout variant="info" title="The lens, not a leaderboard">
+  React is the only framework documented in this category so far, so it serves
+  as the worked example against each axis below. More frameworks land here as
+  they're documented — but the axes are the durable part; the roster is not.
+</Callout>
+
+## The axes
+
+| Axis                | The question it answers                                           |
+| ------------------- | ----------------------------------------------------------------- |
+| Team familiarity    | Who on the team ships productively in it _today_?                 |
+| Ecosystem depth     | When you need a library, does a maintained one exist?             |
+| Rendering-model fit | Does its CSR/SSR/streaming story match your delivery needs?       |
+| Escape hatches      | When the model doesn't fit, how gracefully can you drop below it? |
+| Hiring & longevity  | Can you staff it in three years? Will it still be maintained?     |
+| Maintenance cost    | What do upgrades, deprecations, and churn cost per year?          |
+
+Weight them by your situation, not equally. A two-person team rewrites the
+weights a fifty-person team uses; a content site weights rendering-model fit
+where an internal dashboard weights team familiarity almost exclusively.
+
+- **Team familiarity.** The most underrated axis and usually the decisive one.
+  A framework your team knows deeply beats a "better" one they'd learn on your
+  dime — velocity lost to learning a new mental model is real, current, and
+  paid up front, while the promised gains arrive later and discounted. Switch
+  when the current framework is _failing_ at something, not when a new one is
+  merely nicer.
+- **Ecosystem depth.** Every gap in the ecosystem is code you write and own
+  forever. Check the specific libraries _your_ product needs — the data grid,
+  the charting library, the drag-and-drop — not the aggregate package count.
+- **Rendering-model fit.** Frameworks differ in how mature their SSR,
+  streaming, and static-generation stories are. If your product's UX depends
+  on a particular delivery strategy, that constrains the framework — work
+  through [Rendering & Delivery](/docs/app-screens/rendering) first and bring
+  the answer here.
+- **Escape hatches.** Every abstraction eventually meets a problem it wasn't
+  shaped for. What matters is whether dropping below it — raw DOM, a canvas,
+  an imperative widget — is a supported seam or a fight against the framework.
+- **Hiring and longevity.** You're not just choosing an API; you're choosing
+  the pool of people who can maintain the code after the enthusiast who picked
+  it leaves. Governance matters too: who funds the framework, and what happens
+  if they stop?
+- **Long-term maintenance.** The purchase price is the rewrite; the cost of
+  ownership is the upgrades. How disruptive were the last three major
+  versions? A framework that breaks the world every two years taxes every
+  team that builds on it.
+
+## The worked example: React
+
+Judged honestly against each axis — strengths and the bill they come with:
+
+- **Team familiarity:** the safest assumption in the industry. Most frontend
+  hires have shipped React; the mental model, for all its
+  [gotchas](/docs/tools/react/gotchas), is the one your next teammate already
+  has.
+- **Ecosystem depth:** the deepest available. Whatever niche library you need
+  likely exists, maintained, with its worst bugs already found by someone
+  else. The flip side is decision fatigue — React ships few opinions, so every
+  project re-litigates routing, data fetching, and styling.
+- **Rendering-model fit:** covers the full range — CSR, SSR, static,
+  streaming with Suspense, server components — though the newer server-side
+  story adds real conceptual weight and usually arrives via a meta-framework
+  rather than React alone.
+- **Escape hatches:** solid and supported — refs to real DOM nodes, portals,
+  `flushSync`, and a native path through React Native. The coarse-grained
+  re-render model is the thing you occasionally work around, and the
+  [patterns](/docs/tools/react/patterns) page is largely the discipline of
+  not needing to.
+- **Hiring and longevity:** the easiest staffing story in frontend, backed by
+  Meta and a decade of production use. The realistic risk isn't abandonment;
+  it's churn in the recommended way to do things.
+- **Maintenance cost:** core upgrades have been gentler than the ecosystem
+  around them — the expensive migrations tend to be the meta-framework's, not
+  React's.
+
+The honest summary: React is the low-regret default whose real costs are
+paradox-of-choice and the discipline its render model demands — not any
+missing capability.
+
+## How to run the decision
+
+<DoDont>
+  <Do title="Weight the axes for your team, then score">
+    Write down the two or three axes that dominate your situation, judge each
+    candidate against them, and let the boring answer win. "The team knows it
+    and the ecosystem covers our needs" is a complete justification.
+  </Do>
+  <Dont title="Choose on benchmarks or novelty">
+    Rendering micro-benchmarks measure a cost most products never feel, and "the
+    team is excited to learn it" is a training budget wearing an
+    architecture-decision costume. Both are real inputs; neither is the
+    decision.
+  </Dont>
+</DoDont>
+
+One more constraint that outranks preference: if you need native mobile from
+the same codebase or the same team, the framework question is partly answered
+before taste enters — pick along the axis of where your product must run.
+
+## Where to go next
+
+The axes here come from the category framing in the
+[Overview](/docs/tools/frameworks/overview). To see what living with the
+worked example is actually like, read React's
+[Gotchas](/docs/tools/react/gotchas) — what breaks — and
+[Patterns](/docs/tools/react/patterns) — the habits that keep it boring.
+
+<Callout variant="tip" title="This page, in one line">
+  Pick by team familiarity, ecosystem coverage, and total cost of ownership —
+  not benchmarks or novelty. React is the low-regret default; the lens exists
+  for when your situation says otherwise.
+</Callout>
