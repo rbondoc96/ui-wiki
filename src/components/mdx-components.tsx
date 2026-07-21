@@ -10,6 +10,7 @@ import {
   useInsideCodeTabs,
 } from "#/components/docs/code-tabs.tsx"
 import { Do, DoDont, Dont } from "#/components/docs/do-dont.tsx"
+import { Term } from "#/components/docs/glossary-term.tsx"
 import { Pattern } from "#/components/docs/pattern.tsx"
 import { Platform, PlatformTabs } from "#/components/docs/platform-tabs.tsx"
 import { SourceTrail } from "#/components/docs/source-trail.tsx"
@@ -167,4 +168,5 @@ export const mdxComponents: MDXComponents = {
   Platform,
   PlatformTabs,
   SourceTrail,
+  Term,
 }
