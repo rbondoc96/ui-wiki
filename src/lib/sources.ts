@@ -36,6 +36,38 @@ export type SourceTrailRef = {
 }
 
 export const SOURCES = {
+  "mdn-const": {
+    access: "public",
+    author: "MDN",
+    id: "mdn-const",
+    title: "const — JavaScript reference",
+    type: "docs",
+    url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const",
+  },
+  "mdn-hoisting": {
+    access: "public",
+    author: "MDN",
+    id: "mdn-hoisting",
+    title: "Hoisting — MDN glossary",
+    type: "docs",
+    url: "https://developer.mozilla.org/en-US/docs/Glossary/Hoisting",
+  },
+  "react-typescript-cheatsheet-function-components": {
+    access: "public",
+    author: "React TypeScript Cheatsheet",
+    id: "react-typescript-cheatsheet-function-components",
+    title: "Function Components",
+    type: "docs",
+    url: "https://react-typescript-cheatsheet.netlify.app/docs/basic/getting-started/function_components",
+  },
+  "tanstack-router-file-based-routing": {
+    access: "public",
+    author: "TanStack",
+    id: "tanstack-router-file-based-routing",
+    title: "File-Based Routing",
+    type: "docs",
+    url: "https://tanstack.com/router/latest/docs/framework/react/routing/file-based-routing",
+  },
   "react-preserving-and-resetting-state": {
     access: "public",
     author: "React",

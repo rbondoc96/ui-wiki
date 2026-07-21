@@ -1,0 +1,119 @@
+---
+title: Declaring components
+section: Frameworks
+group: React
+library: tools
+order: 1
+appliesTo: React 19 · TypeScript 5
+reviewed: 2026-07
+description: function and const look interchangeable for declaring a component and mostly are — they differ in exactly three places. Only one of them can break your app, and it's a JavaScript rule, not a React one.
+---
+
+`function Button() {}` and `const Button = () => {}` produce the same
+component: React calls it, it returns JSX, nothing downstream can tell them
+apart. The choice matters in exactly three places — **hoisting**, **typing**,
+and a **render-identity** myth that mostly isn't real. Only the first can
+actually break your app, and it's a plain JavaScript rule that has nothing to
+do with React.
+
+## Hoisting is the one that bites
+
+A `function` declaration is **hoisted**: its name _and_ body are available
+from the top of the scope, so you can reference it before the line it's
+written on. A `const` arrow function is not — the name sits in the _temporal
+dead zone_ until the assignment line runs, and touching it early throws
+`Cannot access 'X' before initialization`.
+
+That distinction is invisible until something reads your component **at module
+load**, before render. TanStack Router's `createFileRoute` does exactly that:
+the `component` reference is evaluated the moment the module is imported.
+
+<Pattern version="React 19 · TanStack Router v1" checked="2026-07">
+<SourceTrail refs={[{ id: "mdn-hoisting", note: "Defines hoisting and the temporal dead zone — the mechanism behind why order matters for const but not for function.", role: "defines" }, { id: "tanstack-router-file-based-routing", note: "createFileRoute evaluates the route's component reference at module load, which is what turns the TDZ into a thrown error rather than a latent one.", role: "supports" }]}>
+
+```tsx
+// ❌ RouteComponent is in the temporal dead zone when createFileRoute runs.
+//    Throws at import: Cannot access 'RouteComponent' before initialization.
+export const Route = createFileRoute("/")({ component: RouteComponent })
+
+const RouteComponent = () => <h1>Home</h1>
+
+// ✅ Hoisted — the name exists before the createFileRoute call executes.
+export const Route = createFileRoute("/")({ component: RouteComponent })
+
+function RouteComponent() {
+  return <h1>Home</h1>
+}
+```
+
+</SourceTrail>
+</Pattern>
+
+Two escapes exist — move the `const` _above_ the call, or keep the arrow and
+name it inline (`component: () => <h1>Home</h1>`). But the reason the generated
+route boilerplate uses `function` is that a hoisted declaration is order-proof:
+it works no matter where in the file it sits. Prefer `function` for anything
+referenced at module scope (routes, lazy targets, registries) and the trap
+never opens.
+
+## Typing: what `const` buys, what `React.FC` costs
+
+The real draw of `const` is that you can annotate the whole binding with a
+component type — `FC`, `FunctionComponent`, `ForwardRefExoticComponent`. It's
+convenient, and for `FC` specifically it comes with baggage.
+
+<Pattern version="React 19 · TypeScript 5" checked="2026-07">
+<SourceTrail refs={[{ id: "react-typescript-cheatsheet-function-components", note: "The recommendation to type props directly rather than reach for FC, and the generics limitation, are drawn from this reference.", role: "adapted-from" }, { id: "mdn-const", note: "const bindings can carry a type annotation on the binding itself, which is what makes the FC form possible; function declarations annotate the parameter instead.", role: "supports" }]}>
+
+```tsx
+// const + FC — types the binding. Older @types/react baked an implicit
+// `children` into FC; React 18's types dropped it, so that complaint is dead.
+const Button: FC<ButtonProps> = ({ label }) => <button>{label}</button>
+
+// Either form: annotate the props parameter directly. No FC, no baggage.
+const Button = ({ label }: ButtonProps) => <button>{label}</button>
+function Button({ label }: ButtonProps) {
+  return <button>{label}</button>
+}
+```
+
+</SourceTrail>
+</Pattern>
+
+The one place the forms genuinely diverge is **generics**. A `function`
+declaration takes a type parameter cleanly; the arrow needs a trailing-comma
+`<T,>` to stop `.tsx` reading it as a JSX tag, and `FC` can't express it at
+all:
+
+```tsx
+// ✅ Reads naturally.
+function List<T>({ items }: { items: Array<T> }) { /* … */ }
+
+// ⚠️ Works, but the `<T,>` is a syntax workaround, not intent.
+const List = <T,>({ items }: { items: Array<T> }) => { /* … */ }
+```
+
+The wiki's default: **annotate the props parameter directly** on whichever
+form you're already using, and reach for `function` when the component is
+generic. `React.FC` earns its place only when you specifically want the
+component _type_ as a value — passing it around, storing it in a typed
+registry.
+
+## What doesn't differ
+
+Neither form is faster, and neither re-renders differently — React calls a
+function either way. The "arrow functions get recreated every render" warning
+is real but aims at a different target: **components defined _inline inside
+another component_**, which do get a fresh identity each render and remount
+their subtree. A module-level `const Button = () => {}` is created once, same
+as a `function`. The fix there is _don't nest the definition_ — not _don't use
+arrows_.
+
+<Callout variant="tip" title="This page, in one line">
+  <code>function</code> and <code>const</code> render identically; pick{" "}
+  <code>function</code> for anything referenced at module load (hoisting is
+  order-proof) and for generic components, type the props parameter directly
+  instead of reaching for <code>React.FC</code>, and remember the
+  recreated-each-render cost is about <em>nesting</em> definitions, not about
+  arrows.
+</Callout>
