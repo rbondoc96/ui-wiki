@@ -21,7 +21,7 @@ saves. Ordered by how often each ships to production.
 The single most common React bug shape: a `useEffect` watches some state and
 `setState`s a value derived from it. You get an extra render per change, and —
 worse — an intermediate frame where the derived value is stale. Chain two of
-these and you have a render cascade nobody can trace.
+these and you have a <Term id="render-cascade">render cascade</Term> nobody can trace.
 
 The test is one question: **can this value be computed from props and state
 you already have?** Then it isn't state. It's a variable in the render body.
@@ -82,7 +82,7 @@ Suppressing the linter converts a visible re-run into an invisible stale bug.
 
 ## StrictMode runs effects twice — that's the feature
 
-In development, StrictMode mounts, unmounts, and remounts every component, so
+In development, <Term id="strict-mode">StrictMode</Term> mounts, unmounts, and remounts every component, so
 each effect runs setup → cleanup → setup. Two WebSocket connections, two
 analytics pings, a duplicated subscription — in dev only. The reflex is to
 guard with a `didInit` ref. The reflex is wrong.
@@ -153,7 +153,7 @@ There are exactly two honest reasons to memoize:
 
 - **A measured-expensive computation.** Profiler says the calculation is slow
   and it re-runs with unchanged inputs. Measured — not "looks expensive."
-- **Referential stability someone downstream depends on.** The value feeds a
+- **<Term id="referential-stability">Referential stability</Term> someone downstream depends on.** The value feeds a
   `memo`-wrapped child, a dependency array, or a context value, where a fresh
   object every render defeats the consumer.
 

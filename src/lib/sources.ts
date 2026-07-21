@@ -92,6 +92,14 @@ export const SOURCES = {
     type: "docs",
     url: "https://react.dev/reference/rules/rules-of-hooks",
   },
+  "react-strict-mode": {
+    access: "public",
+    author: "React",
+    id: "react-strict-mode",
+    title: "<StrictMode>",
+    type: "docs",
+    url: "https://react.dev/reference/react/StrictMode",
+  },
   "react-suspense": {
     access: "public",
     author: "React",

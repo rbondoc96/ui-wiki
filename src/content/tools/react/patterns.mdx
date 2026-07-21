@@ -21,7 +21,7 @@ trigger fires, not by default:
 | Custom hooks        | The same state-plus-effect logic appears twice           | Duplicated mechanism  |
 | Reset via `key`     | New data identity should mean fresh UI state             | Field-by-field resets |
 | Suspense boundaries | Loading UI belongs to a region, not each component in it | `isLoading` flags     |
-| Measured memoizing  | The profiler says so, or a consumer needs stable refs    | Wasted re-renders     |
+| Measured memoizing  | The profiler says so, or a consumer needs <Term id="referential-stability">stable refs</Term> | Wasted re-renders     |
 
 ## Derive, don't sync
 
@@ -135,7 +135,7 @@ Per-component `isLoading` flags scatter the loading design across every
 component that fetches, and they compose badly — three siblings loading
 independently means three spinners popping at different times. Suspense
 inverts it: components declare _that_ they're waiting (by suspending), and a
-**boundary** decides what the region shows meanwhile.
+**<Term id="suspense-boundary">boundary</Term>** decides what the region shows meanwhile.
 
 <Pattern version="React 19" checked="2026-06">
 <SourceTrail refs={[{ id: "react-suspense", note: "Boundary behavior — nearest fallback wins, siblings under one boundary reveal together — is per the reference.", role: "supports" }]}>
