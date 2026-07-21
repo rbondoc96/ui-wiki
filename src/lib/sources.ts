@@ -68,6 +68,14 @@ export const SOURCES = {
     type: "docs",
     url: "https://tanstack.com/router/latest/docs/framework/react/routing/file-based-routing",
   },
+  "tanstack-router-redirect": {
+    access: "public",
+    author: "TanStack",
+    id: "tanstack-router-redirect",
+    title: "redirect function",
+    type: "docs",
+    url: "https://tanstack.com/router/latest/docs/framework/react/api/router/redirectFunction",
+  },
   "react-preserving-and-resetting-state": {
     access: "public",
     author: "React",
@@ -116,6 +124,14 @@ export const SOURCES = {
     type: "docs",
     url: "https://react.dev/learn/synchronizing-with-effects",
   },
+  "react-use": {
+    access: "public",
+    author: "React",
+    id: "react-use",
+    title: "use",
+    type: "docs",
+    url: "https://react.dev/reference/react/use",
+  },
   "react-use-memo": {
     access: "public",
     author: "React",
@@ -131,6 +147,30 @@ export const SOURCES = {
     title: "You Might Not Need an Effect",
     type: "docs",
     url: "https://react.dev/learn/you-might-not-need-an-effect",
+  },
+  "vue-suspense": {
+    access: "public",
+    author: "Vue",
+    id: "vue-suspense",
+    title: "Suspense",
+    type: "docs",
+    url: "https://vuejs.org/guide/built-ins/suspense.html",
+  },
+  "solid-suspense-docs": {
+    access: "public",
+    author: "SolidJS",
+    id: "solid-suspense-docs",
+    title: "<Suspense>",
+    type: "docs",
+    url: "https://docs.solidjs.com/reference/components/suspense",
+  },
+  "solid-suspense-source": {
+    access: "public",
+    author: "SolidJS",
+    id: "solid-suspense-source",
+    title: "solid/packages/solid/src/render/Suspense.ts (v1.9.14)",
+    type: "code",
+    url: "https://github.com/solidjs/solid/blob/main/packages/solid/src/render/Suspense.ts",
   },
 } as const satisfies Record<string, Source>
 

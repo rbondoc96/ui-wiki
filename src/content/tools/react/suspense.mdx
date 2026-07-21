@@ -1,0 +1,188 @@
+---
+title: How Suspense works
+section: Frameworks
+group: React
+library: tools
+order: 15
+appliesTo: React 19
+reviewed: 2026-07
+description: Suspense suspends by throwing a thenable — an exception that means "not an error, retry when this settles." Why the throw, why a Promise, why routers throw too, and why Vue and Solid never throw at all.
+---
+
+[Patterns](/docs/tools/react/patterns) covers _when_ to reach for a
+<Term id="suspense-boundary">boundary</Term> and where to place it. This page is
+the layer under that: what actually happens when a component "suspends," why the
+mechanism is a `throw`, and why the same trick shows up in routers — plus why
+Vue and Solid reach the same feature without throwing anything.
+
+## The one-sentence mechanism
+
+A component suspends by **throwing a thenable** (a Promise-like) during render.
+React unwinds to the nearest boundary, shows its fallback, subscribes to the
+thenable, and re-renders the subtree when it resolves. That's the whole trick —
+but it's the _mechanism_, not the code you write. Hand-throwing promises was
+never a documented, stable API; it's the internal contract that data libraries
+(Relay, React Query, framework routers) implement so you don't.
+
+<Callout variant="warning" title="Don't throw promises by hand">
+  If you're reaching for <code>throw somePromise</code> in your own component,
+  you want <a href="/docs/tools/react/suspense#what-you-actually-write-use">
+  <code>use()</code></a> instead. The throw is plumbing that libraries own.
+</Callout>
+
+## Why throw at all?
+
+`render` is a synchronous function that returns JSX. A component five levels
+deep has no way to tell an ancestor "I'm not ready" — short of threading a
+return value up through every parent that doesn't care. `throw` solves exactly
+that: it unwinds the stack instantly to the nearest handler, the same machinery
+an error boundary uses. The mental model that makes Suspense click:
+
+<Callout variant="tip" title="The mental model">
+  <strong>Suspense is an error boundary for "not ready yet."</strong> Same
+  catch-and-unwind mechanism — a different thrown value, and a retry instead of
+  a permanent fallback.
+</Callout>
+
+## Why a Promise, and not an Error?
+
+Because the thrown value has to answer a second question: _when do we try
+again?_ An `Error` can't — it means "give up." A thenable can, because
+`.then()` **is** the subscription. One object carries both the signal and the
+continuation:
+
+| You throw…            | React reads it as…                          | Result                        |
+| --------------------- | ------------------------------------------- | ----------------------------- |
+| an `Error`            | "render failed, permanently"                | nearest error boundary, no retry |
+| a **pending thenable**| "not an error — wait, then retry"           | nearest Suspense fallback, retry on resolve |
+
+So the choice of a Promise isn't incidental: it's the smallest value that says
+both _stop here_ and _ping me when I'm ready_ at once.
+
+## What you actually write: `use()`
+
+React 19's sanctioned surface is the `use` API. It reads a promise; if the
+promise is still pending, the component suspends — the throw happens inside
+`use`, not in your code.
+
+<Pattern version="React 19" checked="2026-07">
+<SourceTrail refs={[{ id: "react-use", note: "use() as the public API for reading a promise and suspending on it; throwing a thenable directly is the underlying mechanism, not a documented API.", role: "supports" }]}>
+
+```tsx
+function Profile({ userPromise }: { userPromise: Promise<User> }) {
+  // Suspends here if pending; resumes with the value when it resolves.
+  const user = use(userPromise)
+  return <h1>{user.name}</h1>
+}
+
+// A boundary decides what the region shows while `use` is waiting.
+;<Suspense fallback={<ProfileSkeleton />}>
+  <Profile userPromise={fetchUser(id)} />
+</Suspense>
+```
+
+Unlike other hooks, `use` may be called conditionally or inside a loop — it's a
+reader, not a stateful hook. The takeaway: you hand `use` a promise and declare
+a fallback; the suspend-and-retry dance is React's problem, not yours.
+
+</SourceTrail>
+</Pattern>
+
+## `throw` as control flow, beyond Suspense
+
+Once you see `throw` as "abort this synchronous flow and let an ancestor
+decide," Suspense stops looking special — it's one case of a general pattern.
+Routers use the identical trick for **redirects**. A `redirect()` can fire deep
+inside a `beforeLoad` or loader; throwing it bails out of that whole flow
+without every caller checking a return value, and the router catches the marker
+and navigates.
+
+<Pattern version="TanStack Router v1" checked="2026-07">
+<SourceTrail refs={[{ id: "tanstack-router-redirect", note: "redirect() is designed to be thrown from beforeLoad/loader as intentional control flow; isRedirect() distinguishes a thrown redirect from a genuine error in a try/catch.", role: "supports" }]}>
+
+```tsx
+// Deep in a beforeLoad — no return-value plumbing back up to the router.
+export const Route = createFileRoute("/dashboard")({
+  beforeLoad: ({ context }) => {
+    if (!context.auth.user) {
+      throw redirect({ to: "/login" }) // not a Promise — a redirect marker
+    }
+  },
+})
+```
+
+The router even ships `isRedirect()` so a `try/catch` can tell an intentional
+redirect apart from a real error — proof the throw is control flow, not a
+failure.
+
+</SourceTrail>
+</Pattern>
+
+The unifying rule is that **the thrown value's _type_ selects the handler.**
+Same `throw`, different catcher:
+
+| The thrown value        | Means…                          | Caught by…              |
+| ----------------------- | ------------------------------- | ----------------------- |
+| pending thenable        | "wait, then retry"              | Suspense boundary       |
+| `Error`                 | "render failed"                 | error boundary          |
+| `redirect()`            | "navigate elsewhere instead"    | the router              |
+| `notFound()`            | "show the not-found UI"         | the router              |
+
+## How other frameworks suspend
+
+Here's the part worth internalizing: **throwing is a React implementation
+choice, not what "Suspense" means.** Vue and Solid ship the same
+region-owns-the-waiting feature and never throw a promise to do it.
+
+**Vue** — `<Suspense>` (still officially experimental) hooks into a component's
+`async setup()` / top-level `await`. The boundary _awaits_ the setup promise
+and shows its `#fallback` slot until it resolves, then swaps in `#default`. It's
+async/await integrated into the component lifecycle — no exception, no stack
+unwinding.
+
+**Solid** — `<Suspense>` is signal-based. Reading a still-pending
+`createResource` inside a tracking scope calls `increment()` on the nearest
+`SuspenseContext` — a plain counter signal. The boundary reads that signal to
+swap between fallback and children, and `decrement()` on resolve flips it back.
+Fine-grained reactivity all the way down: nothing _above_ the resource
+re-renders, and the only `throw` in the read path is for genuine fetch errors,
+unrelated to suspending.
+
+<Pattern version="Solid 1.x · Vue 3.x" checked="2026-07">
+<SourceTrail refs={[
+  { id: "vue-suspense", note: "Vue <Suspense> awaits async setup()/async-component promises and shows the fallback slot meanwhile; it's experimental.", role: "supports" },
+  { id: "solid-suspense-source", note: "Verified against source (v1.9.14): a pending resource read calls SuspenseContext.increment(); <Suspense> reads that counter signal to toggle fallback/children. No thrown thenable.", role: "supports" },
+  { id: "solid-suspense-docs", note: "Solid's Suspense/resource model as documented.", role: "further-reading" },
+]}>
+
+| Framework | Suspend signal                                   | Who catches it        | What re-renders on resume        |
+| --------- | ------------------------------------------------ | --------------------- | -------------------------------- |
+| React     | `throw` a pending thenable during render         | nearest `<Suspense>`  | the suspended subtree            |
+| Vue       | an `async setup()` promise the boundary awaits   | nearest `<Suspense>`  | resolves into the `#default` slot|
+| Solid     | resource read increments a `SuspenseContext` counter | nearest `<Suspense>` | just the boundary's fallback↔children memo |
+
+</SourceTrail>
+</Pattern>
+
+<Callout variant="info" title="Version note">
+  Solid's mechanism above is verified against Solid 1.x source. A Solid 2.0 beta
+  reworks Suspense again (computations returning promises into the reactive
+  graph); its specifics aren't covered here.
+</Callout>
+
+## Where to go next
+
+This page is the _how_; [Patterns → Let Suspense own the
+waiting](/docs/tools/react/patterns) is the _when and where_. On the server,
+the same boundaries become streaming flush points — see [Streaming SSR &
+Suspense](/docs/app-screens/rendering/streaming-ssr). And what to actually
+render inside a fallback (skeleton vs. spinner, and when not to flash one) is
+[Loading & Optimistic States](/docs/patterns/loading-states).
+
+<Callout variant="tip" title="This page, in one line">
+  React suspends by throwing a thenable — an exception that means "retry when
+  this settles," caught like an error boundary; <code>use()</code> is the API
+  that hides the throw, routers throw <code>redirect()</code> the same way for
+  navigation, and Vue and Solid reach the same feature with awaited promises and
+  signal counters instead of throwing.
+</Callout>
