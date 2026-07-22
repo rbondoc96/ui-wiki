@@ -192,6 +192,19 @@ sequenceDiagram
 
 <Callout variant="warning" title="Mermaid's limit">
   These are <em>static</em> teaching diagrams. Mermaid can't animate items moving
-  through the queues — for that you'd build a dedicated React component. Ship the
-  static version first; reserve animation for a few marquee pages.
+  through the queues — that's where a dedicated React component earns its keep.
+  Ship the static version first; reserve animation for a few marquee pages like
+  this one.
 </Callout>
+
+The static diagrams show the *shape*. To feel the *ordering* — items physically
+moving between the stack and queues as microtasks drain ahead of the next task —
+step through a real snippet below.
+
+<EventLoop />
+
+Pick a scenario, then **Step** through it (or **Play**). Watch where each piece
+of work waits: the call stack runs one thing at a time, the microtask queue
+drains *completely* after the stack clears, and only then does a single task run.
+Motion is decorative here — the narration and the **All steps** list carry the
+same story, and both respect `prefers-reduced-motion`.

@@ -10,6 +10,7 @@ import {
   useInsideCodeTabs,
 } from "#/components/docs/code-tabs.tsx"
 import { Do, DoDont, Dont } from "#/components/docs/do-dont.tsx"
+import { EventLoop } from "#/components/docs/event-loop.tsx"
 import { Term } from "#/components/docs/glossary-term.tsx"
 import { Mermaid } from "#/components/docs/mermaid.tsx"
 import { Pattern } from "#/components/docs/pattern.tsx"
@@ -165,6 +166,7 @@ export const mdxComponents: MDXComponents = {
   Do,
   DoDont,
   Dont,
+  EventLoop,
   Mermaid,
   Pattern,
   Platform,
