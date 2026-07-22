@@ -49,6 +49,29 @@ moving back must always be free, and it must never discard what they've entered.
   </Dont>
 </DoDont>
 
+As a state machine the asymmetry is the whole point: Next is gated (a failed
+validation loops back to the same step), Back is always free, and a server error
+on submit routes the user back to the offending step.
+
+<Mermaid
+  caption="Next gates forward on validation; Back is always open; a server error jumps the user back to the failing step."
+  chart={`
+stateDiagram-v2
+  [*] --> Step1
+  Step1 --> Step1: Next (errors)
+  Step1 --> Step2: Next (valid)
+  Step2 --> Step1: Back
+  Step2 --> Review: Next (valid)
+  Review --> Step2: Back
+  Review --> Submitting: Place order
+  Submitting --> Done: success
+  Submitting --> Step1: server error (route to field)
+  Done --> [*]
+`}
+  description="A state diagram of a multi-step form. Starting at Step 1, pressing Next with validation errors loops back to the same step, while a valid Next advances to Step 2. Back from Step 2 returns to Step 1 freely. A valid Next from Step 2 reaches the Review step; Back returns to Step 2. Placing the order moves to a Submitting state; success reaches Done and ends, while a server error routes back to Step 1 to fix the failing field."
+  title="Multi-step form as a state machine"
+/>
+
 ## One source of truth across steps
 
 The defining bug of multi-step forms is data that doesn't survive navigation:

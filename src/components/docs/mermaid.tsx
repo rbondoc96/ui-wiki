@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import type { Mermaid as MermaidApi } from "mermaid"
 
 import { useTheme } from "#/lib/theme.tsx"
@@ -164,17 +164,30 @@ const THEME_CSS = `
  * Renders a Mermaid diagram from source text, themed to match the wiki and
  * re-rendered on light/dark toggle. Diagram kinds (sequence, state, flowchart,
  * class/ER, etc.) are all just Mermaid syntax — one component covers them all.
+ *
+ * A Mermaid SVG is opaque to assistive tech on its own, so the rendered `<svg>`
+ * gets `role="img"` plus an accessible name — from `title`, else the visible
+ * `caption` — and an optional `description` for the longer story a sighted
+ * reader gets from the shapes.
  */
 export function Mermaid({
   caption,
   chart,
+  description,
+  title,
 }: {
   caption?: string
   chart: string
+  description?: string
+  title?: string
 }) {
   const { theme } = useTheme()
+  const uid = useId()
+  const captionId = `${uid}-caption`
+  const descId = `${uid}-desc`
   const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -200,9 +213,18 @@ export function Mermaid({
       })
       try {
         const { svg } = await mermaid.render(renderId, chart.trim())
-        if (cancelled) return
-        if (containerRef.current) containerRef.current.innerHTML = svg
+        if (cancelled || !containerRef.current) return
+        containerRef.current.innerHTML = svg
+        const svgEl = containerRef.current.querySelector("svg")
+        if (svgEl) {
+          svgEl.setAttribute("role", "img")
+          if (title) svgEl.setAttribute("aria-label", title)
+          else if (caption) svgEl.setAttribute("aria-labelledby", captionId)
+          else svgEl.setAttribute("aria-label", "Diagram")
+          if (description) svgEl.setAttribute("aria-describedby", descId)
+        }
         setError(null)
+        setReady(true)
       } catch (err) {
         if (cancelled) return
         setError(err instanceof Error ? err.message : String(err))
@@ -212,7 +234,7 @@ export function Mermaid({
       cancelled = true
     }
     // Re-render when the diagram source or the active theme changes.
-  }, [chart, theme])
+  }, [caption, captionId, chart, descId, description, theme, title])
 
   return (
     <figure className="not-prose my-6">
@@ -221,16 +243,34 @@ export function Mermaid({
           Mermaid error: {error}
         </pre>
       ) : (
-        <div
-          ref={containerRef}
-          className={cn(
-            "flex justify-center overflow-x-auto rounded-lg border border-border bg-card p-6",
-            "[&_svg]:h-auto [&_svg]:max-w-full"
+        <div className="relative">
+          <div
+            ref={containerRef}
+            className={cn(
+              "flex min-h-28 justify-center overflow-x-auto rounded-lg border border-border bg-card p-6",
+              "[&_svg]:h-auto [&_svg]:max-w-full"
+            )}
+          />
+          {/* Placeholder until the lazy Mermaid chunk loads and the SVG lands,
+              so there's no empty-frame flash on first paint. */}
+          {ready ? null : (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 animate-pulse rounded-lg bg-muted"
+            />
           )}
-        />
+        </div>
       )}
+      {description ? (
+        <p className="sr-only" id={descId}>
+          {description}
+        </p>
+      ) : null}
       {caption ? (
-        <figcaption className="mt-2 text-center text-sm text-muted-foreground">
+        <figcaption
+          className="mt-2 text-center text-sm text-muted-foreground"
+          id={captionId}
+        >
           {caption}
         </figcaption>
       ) : null}

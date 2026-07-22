@@ -56,6 +56,37 @@ function useAutosave(values: Draft) {
 }
 ```
 
+The whole loop — debounce, flush, status, and the failure branch that must keep
+the user's input — in one picture:
+
+<Mermaid
+  caption="The autosave loop: type → mirror + debounce → flush → save, with status reflecting pending vs. confirmed and failure preserving the input."
+  chart={`
+sequenceDiagram
+  participant U as User
+  participant F as Form
+  participant D as Local draft
+  participant S as Server
+  U->>F: types
+  F->>D: mirror value
+  Note over F: debounce ~800ms
+  U->>F: keeps typing (resets timer)
+  Note over F: pause or blur -> flush
+  F->>S: save draft
+  F-->>U: "Saving…"
+  alt success
+    S-->>F: 200
+    F-->>U: "Saved"
+  else failure
+    S-->>F: error
+    F-->>U: "Couldn't save — retry"
+    Note over F,D: keep input, retry with backoff
+  end
+`}
+  description="A sequence diagram of the autosave loop. The user types; the form mirrors the value to a local draft and starts an 800ms debounce timer, which resets on further typing. On pause or blur the form flushes a save request to the server and shows 'Saving…'. On success the server returns 200 and the status becomes 'Saved'. On failure the status becomes 'Couldn't save — retry', the input is kept, and the save retries with backoff."
+  title="Autosave debounce-and-status loop"
+/>
+
 ## Always show save status
 
 The user gave up the save button; give them a status in return. Surface idle →

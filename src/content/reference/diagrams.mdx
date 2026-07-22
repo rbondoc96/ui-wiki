@@ -31,6 +31,14 @@ The diagram kind is declared by the first line of the source (`stateDiagram-v2`,
 nothing to configure per type. If the source has a syntax error, the page shows
 the Mermaid error inline instead of a broken diagram, so mistakes are easy to spot.
 
+<Callout variant="info" title="Make it accessible">
+  A rendered diagram is opaque to a screen reader. Add a <code>title</code> (a
+  short accessible name) and a <code>description</code> (the story the shapes
+  tell, in prose) so the diagram isn't a blank to non-sighted readers. Both are
+  optional but strongly encouraged; when omitted, the visible <code>caption</code>
+  becomes the name.
+</Callout>
+
 <Callout variant="tip" title="What's worth diagramming">
   Reach for a diagram when time-ordering or branching is the point — an async
   lifecycle, a data-fetch round trip, a "which option?" decision. Skip it when a

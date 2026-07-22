@@ -91,6 +91,26 @@ which is exactly the ergonomic edge a store is for.
   `useState` or context.
 </Callout>
 
+The same test as a decision tree:
+
+<Mermaid
+  caption="Who owns the truth decides the tool — server data to a query cache, edits to a form, shareable view state to the URL, and the client-owned remainder to a store."
+  chart={`
+flowchart TD
+  A[Where should this state live?] --> B{Came from a server?}
+  B -- yes --> Q[Query cache]
+  B -- no --> C{Being edited in a form?}
+  C -- yes --> F[Form library]
+  C -- no --> D{Shared across the tree, touched outside React, or survives a restart?}
+  D -- no --> L[useState or context]
+  D -- yes --> E{On the web and shareable?}
+  E -- yes --> U[URL]
+  E -- no --> S[Client store]
+`}
+  description="A decision flowchart for choosing where state lives. If it came from a server, use a query cache. Otherwise, if it is being edited in a form, use a form library. Otherwise, if it is not shared across the tree, touched outside React, or required to survive a restart, use useState or context. If it is, then on the web and shareable it belongs in the URL; otherwise it belongs in a client store."
+  title="Where should this state live?"
+/>
+
 ## Don't cache server data in a store
 
 The most common anti-pattern once a project has both tools: a hook fetches from

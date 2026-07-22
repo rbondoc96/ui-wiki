@@ -24,6 +24,26 @@ but it's the _mechanism_, not the code you write. Hand-throwing promises was
 never a documented, stable API; it's the internal contract that data libraries
 (Relay, React Query, framework routers) implement so you don't.
 
+<Mermaid
+  caption="Suspend-and-retry: render throws a pending thenable, React unwinds to the boundary and shows the fallback, then re-renders the subtree once the thenable resolves."
+  chart={`
+sequenceDiagram
+  participant C as Component
+  participant R as React
+  participant B as Suspense boundary
+  participant P as Thenable
+  C->>R: render() throws pending thenable
+  R->>B: unwind to nearest boundary
+  B-->>R: render fallback
+  R->>P: subscribe via .then()
+  P-->>R: resolves
+  R->>C: re-render subtree
+  C-->>R: real UI
+`}
+  description="A sequence diagram of Suspense. During render a component throws a pending thenable. React unwinds to the nearest Suspense boundary, which renders its fallback. React subscribes to the thenable via .then(). When the thenable resolves, React re-renders the suspended subtree and the component returns its real UI."
+  title="How a component suspends and resumes"
+/>
+
 <Callout variant="warning" title="Don't throw promises by hand">
   If you're reaching for <code>throw somePromise</code> in your own component,
   you want <a href="/docs/tools/react/suspense#what-you-actually-write-use">

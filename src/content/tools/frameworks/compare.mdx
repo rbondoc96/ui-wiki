@@ -111,6 +111,29 @@ One more constraint that outranks preference: if you need native mobile from
 the same codebase or the same team, the framework question is partly answered
 before taste enters — pick along the axis of where your product must run.
 
+The whole procedure, with the constraints in priority order:
+
+<Mermaid
+  caption="Keep a working framework unless it's failing; let the native-mobile constraint and team familiarity narrow the field before ecosystem and rendering fit decide."
+  chart={`
+flowchart TD
+  A[Choosing a framework] --> B{Current one failing?}
+  B -- no --> K[Keep it]
+  B -- yes, or greenfield --> C{Need native mobile from one team?}
+  C -- yes --> M[Constrain to where it must run]
+  C -- no --> D{Team already knows a candidate deeply?}
+  M --> D
+  D -- yes --> E{Ecosystem and rendering fit your needs?}
+  D -- no --> W[Weigh training cost against gains]
+  W --> E
+  E -- yes --> P[Pick the boring answer]
+  E -- no --> R[Reconsider candidates]
+  R --> D
+`}
+  description="A decision flowchart for choosing a framework. If a current framework is not failing, keep it. If it is failing or the project is greenfield, first check whether native mobile from one team is needed; if so, constrain the choice to where the product must run. Then ask whether the team already knows a candidate deeply — if not, weigh training cost against gains. Next, check whether ecosystem and rendering fit your needs; if yes, pick the boring answer, and if not, reconsider candidates and re-evaluate."
+  title="How to run the framework decision"
+/>
+
 ## Where to go next
 
 The axes here come from the category framing in the
