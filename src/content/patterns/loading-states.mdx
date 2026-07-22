@@ -57,6 +57,26 @@ const showSpinner = useDelayedFlag(isLoading, { delay: 200, minVisible: 400 })
   its own discipline; see <a href="/docs/patterns/empty-states">Empty States</a>.
 </Callout>
 
+Every async view is really a small state machine. Modeling it explicitly — rather
+than juggling booleans like `isLoading` and `hasError` — makes the illegal states
+(loading *and* error at once) unrepresentable and forces you to design each branch.
+
+<Mermaid
+  caption="The lifecycle every fetch moves through — success, empty, and error are distinct terminal branches, not an afterthought."
+  chart={`
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Loading: fetch
+  Loading --> Success: data
+  Loading --> Empty: no data
+  Loading --> Error: failure
+  Success --> Loading: refetch
+  Empty --> Loading: refetch
+  Error --> Loading: retry
+  Success --> [*]
+`}
+/>
+
 ## Optimistic updates: act first, reconcile later
 
 When an action nearly always succeeds — toggling a like, checking a todo,

@@ -1,0 +1,189 @@
+---
+title: Diagrams
+section: Reference
+order: 90
+description: How to add diagrams to a page with the <Mermaid> component, plus a live gallery of every supported diagram type themed to the wiki.
+---
+
+Diagrams are authored as text with [Mermaid](https://mermaid.js.org/) and rendered
+by the `<Mermaid>` MDX component. Because the source is plain text, diagrams live
+in the same `.mdx` file as the prose, diff cleanly in git, and re-theme
+automatically with the light/dark toggle — no image assets to keep in sync.
+
+## Authoring
+
+Pass the diagram source as the `chart` prop using a template literal, and add an
+optional `caption`:
+
+```mdx
+<Mermaid
+  caption="Optional one-line explanation shown under the diagram."
+  chart={`
+sequenceDiagram
+  Client->>Server: request
+  Server-->>Client: response
+`}
+/>
+```
+
+The diagram kind is declared by the first line of the source (`stateDiagram-v2`,
+`sequenceDiagram`, `flowchart TD`, …). One component renders them all — there's
+nothing to configure per type. If the source has a syntax error, the page shows
+the Mermaid error inline instead of a broken diagram, so mistakes are easy to spot.
+
+<Callout variant="tip" title="What's worth diagramming">
+  Reach for a diagram when time-ordering or branching is the point — an async
+  lifecycle, a data-fetch round trip, a "which option?" decision. Skip it when a
+  sentence or a table already says it clearly.
+</Callout>
+
+## State diagrams
+
+Best for lifecycles and finite states — form steps, async status, wizard flows.
+Modeling states explicitly makes illegal combinations unrepresentable.
+
+<Mermaid
+  caption="A multi-step form as a state machine."
+  chart={`
+stateDiagram-v2
+  [*] --> Editing
+  Editing --> Validating: submit step
+  Validating --> Editing: errors
+  Validating --> NextStep: valid
+  NextStep --> Editing: back
+  NextStep --> Submitting: final submit
+  Submitting --> Done: success
+  Submitting --> Editing: server error
+  Done --> [*]
+`}
+/>
+
+## Sequence diagrams
+
+Best for showing *order over time* across participants — data fetching,
+client/server sync, auth handshakes.
+
+<Mermaid
+  caption="Optimistic update: the UI commits before the server confirms, then reconciles."
+  chart={`
+sequenceDiagram
+  participant U as User
+  participant UI
+  participant Q as Query Cache
+  participant S as Server
+  U->>UI: toggle like
+  UI->>Q: apply change now
+  UI-->>U: shows liked (instant)
+  UI->>S: PATCH /like
+  alt success
+    S-->>UI: 200
+    UI->>Q: invalidate + refetch
+  else failure
+    S-->>UI: 500
+    UI->>Q: roll back
+    UI-->>U: error toast
+  end
+`}
+/>
+
+## Flowcharts & decision trees
+
+Best for "which option do I use?" guidance — the visual form of a Compare & Choose
+page.
+
+<Mermaid
+  caption="Choosing a loading treatment."
+  chart={`
+flowchart TD
+  A[Async view] --> B{Layout known?}
+  B -- yes --> C{Wait is long?}
+  B -- no --> D[Spinner]
+  C -- no --> E[Skeleton]
+  C -- yes --> F{Progress measurable?}
+  F -- yes --> G[Progress bar]
+  F -- no --> E
+`}
+/>
+
+## Component tree & data flow
+
+Best for React-specific structure — hierarchy, props down / events up, where state
+lives.
+
+<Mermaid
+  caption="Props flow down; events flow back up to the owner of the state."
+  chart={`
+flowchart TD
+  App -->|todos, onToggle| List[TodoList]
+  List -->|todo, onToggle| Item[TodoItem]
+  Item -.->|onToggle id| List
+  List -.->|onToggle id| App
+`}
+/>
+
+## Architecture
+
+Best for the occasional framework-internals or system view — SSR/hydration,
+rendering pipelines.
+
+<Mermaid
+  caption="Server render → HTML → client hydration."
+  chart={`
+flowchart LR
+  subgraph Server
+    R[Render to HTML] --> M[Serialize data]
+  end
+  subgraph Client
+    H[Hydrate] --> I[Attach handlers]
+    I --> A[Interactive]
+  end
+  M -->|HTML + data| H
+`}
+/>
+
+## Case study: the JS event loop
+
+The event loop is the limit case. Its *structure* — call stack, Web APIs, and the
+two queues — reads well as a flowchart:
+
+<Mermaid
+  caption="The runtime pieces the event loop shuffles work between."
+  chart={`
+flowchart TD
+  Stack[Call Stack] -->|async call| WebAPI[Web APIs]
+  WebAPI -->|setTimeout, events| MacroQ[Task Queue]
+  WebAPI -->|promises, queueMicrotask| MicroQ[Microtask Queue]
+  Loop{Stack empty?} -->|drain all| MicroQ
+  MicroQ --> Loop2{Micro empty?}
+  Loop2 -->|take one| MacroQ
+  MacroQ --> Stack
+`}
+/>
+
+But *why* microtasks fully drain before the next macrotask is really about
+ordering — and a sequence diagram teaches that better:
+
+<Mermaid
+  caption="Microtasks drain completely after each task, before the next task runs."
+  chart={`
+sequenceDiagram
+  participant T as Task Queue
+  participant S as Call Stack
+  participant M as Microtask Queue
+  T->>S: run task (e.g. click handler)
+  S->>M: queueMicrotask / .then
+  S-->>T: task returns, stack empty
+  Note over M: drain ALL microtasks now
+  M->>S: microtask 1
+  M->>S: microtask 2
+  S-->>M: empty
+  Note over T: only now: next task
+  T->>S: next task
+`}
+/>
+
+<Callout variant="warning" title="Mermaid's limit">
+  These are <em>static</em> teaching diagrams. Mermaid can't animate items moving
+  through the queues — for that you'd build a dedicated React component. Ship the
+  static version first; reserve animation for a few marquee pages.
+</Callout>
