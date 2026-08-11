@@ -42,6 +42,7 @@ Don't run `dev`/`build` unless you actually need to verify something; the checks
 
 - **Source trails.** `<SourceTrail refs={[…]} />` attaches citations to a block. Refs are validated against `SOURCES` in `src/lib/sources.ts` — an unknown id **throws at render/build**, on purpose. Add the source to `sources.ts` first.
 - **Glossary.** `<Term id="…">` links inline jargon to definitions in `src/lib/glossary.ts`.
+- **Package notes.** Pages under `Tools → Packages` (`src/content/tools/packages/<pkg>/`) document an installed npm dependency. They have a stricter contract than the rest of the wiki — fixed page shape, mandatory `appliesTo` + `reviewed`. **Read `docs/package-notes-template.md` before writing one.**
 
 ## Conventions
 
