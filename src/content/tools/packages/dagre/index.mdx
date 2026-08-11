@@ -1,0 +1,46 @@
+---
+title: Overview
+section: Packages
+group: "@dagrejs/dagre"
+library: tools
+order: 0
+description: A layered graph layout algorithm that computes node coordinates and renders nothing. What it solves, the maintained-fork situation, and why it usually shows up next to a graph renderer rather than alone.
+---
+
+<Callout variant="warning" title="Scaffold — not yet researched">
+  This page exists to hold the nav slot and fix the page shape. The prose below
+  is a skeleton, not vetted guidance. See
+  `docs/package-notes-template.md` for what each section must contain, and
+  delete this callout once the page has real content, an `appliesTo` version,
+  and a `reviewed` stamp.
+</Callout>
+
+`@dagrejs/dagre` computes a layered layout for a directed graph: you give it
+nodes with dimensions and a set of edges, it assigns each node an `x`/`y`. It
+draws nothing and knows nothing about React or the DOM, which is exactly why it
+pairs with a renderer such as
+<a href="/docs/tools/packages/xyflow-react">@xyflow/react</a>.
+
+## What it is
+
+{/* One paragraph: the layout problem it solves and the class of algorithm it
+    uses. Note that `@dagrejs/dagre` is the maintained scope and what that means
+    for anyone reading results for the unscoped `dagre`. */}
+
+## When to reach for it
+
+{/* Concrete triggers — the graph shapes it lays out well. */}
+
+## When not to
+
+{/* Graph shapes it lays out badly, and what to use instead. */}
+
+## The mental model
+
+{/* Coordinate conventions, the required inputs, and what the returned graph
+    actually contains. Wrap version-sensitive snippets in
+    <Pattern version="…" checked="…">. */}
+
+## Setup
+
+{/* Install line and the minimum viable graph — build, layout, read positions. */}

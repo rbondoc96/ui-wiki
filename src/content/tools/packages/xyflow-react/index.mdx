@@ -1,0 +1,49 @@
+---
+title: Overview
+section: Packages
+group: "@xyflow/react"
+library: tools
+order: 0
+description: A React renderer for node-and-edge graphs — it owns the canvas, the viewport, and interaction, and deliberately owns no layout algorithm. What it does, when to reach for it, and what you still have to bring yourself.
+---
+
+<Callout variant="warning" title="Scaffold — not yet researched">
+  This page exists to hold the nav slot and fix the page shape. The prose below
+  is a skeleton, not vetted guidance. See
+  `docs/package-notes-template.md` for what each section must contain, and
+  delete this callout once the page has real content, an `appliesTo` version,
+  and a `reviewed` stamp.
+</Callout>
+
+`@xyflow/react` renders interactive node-and-edge graphs: it owns the canvas,
+the pan/zoom viewport, node dragging, and edge connection. It does **not**
+decide where nodes go — positions are your data. That single boundary explains
+most of what follows, including why a layout library like
+<a href="/docs/tools/packages/dagre">@dagrejs/dagre</a> is a near-mandatory
+companion for any graph you didn't hand-place.
+
+## What it is
+
+{/* One paragraph: the job it does, and the one it refuses to do. Name the
+    scope rename (React Flow → @xyflow/react) if a reader searching old docs
+    would otherwise be lost. */}
+
+## When to reach for it
+
+{/* Concrete triggers. Each bullet is a situation, not a feature. */}
+
+## When not to
+
+{/* The honest exclusions — cases where a static SVG, a Mermaid diagram, or a
+    plain list is the right answer instead. This section is what makes the page
+    worth more than the README. */}
+
+## The mental model
+
+{/* The two or three invariants that, once understood, make the API predictable.
+    Wrap version-sensitive snippets in <Pattern version="…" checked="…">. */}
+
+## Setup
+
+{/* Install line, required peer setup, and the required-stylesheet /
+    parent-height class of mistake that makes a first render appear blank. */}
