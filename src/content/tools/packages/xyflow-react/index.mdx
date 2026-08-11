@@ -4,16 +4,10 @@ section: Packages
 group: "@xyflow/react"
 library: tools
 order: 0
+appliesTo: "@xyflow/react 12.11"
+reviewed: 2026-08
 description: A React renderer for node-and-edge graphs — it owns the canvas, the viewport, and interaction, and deliberately owns no layout algorithm. What it does, when to reach for it, and what you still have to bring yourself.
 ---
-
-<Callout variant="warning" title="Scaffold — not yet researched">
-  This page exists to hold the nav slot and fix the page shape. The prose below
-  is a skeleton, not vetted guidance. See
-  `docs/package-notes-template.md` for what each section must contain, and
-  delete this callout once the page has real content, an `appliesTo` version,
-  and a `reviewed` stamp.
-</Callout>
 
 `@xyflow/react` renders interactive node-and-edge graphs: it owns the canvas,
 the pan/zoom viewport, node dragging, and edge connection. It does **not**
@@ -24,26 +18,144 @@ companion for any graph you didn't hand-place.
 
 ## What it is
 
-{/* One paragraph: the job it does, and the one it refuses to do. Name the
-    scope rename (React Flow → @xyflow/react) if a reader searching old docs
-    would otherwise be lost. */}
+A controlled React component over an internal zustand store. You pass arrays of
+nodes and edges; it renders each node as a real DOM element you supply, routes
+edges between their handles, and manages the viewport transform. Interaction is
+its job: dragging, selection, connecting, panning, zooming, keyboard handling,
+and the accessibility plumbing around all of it. Geometry is not its job.
+
+The package was renamed. **React Flow is now `@xyflow/react`**, and version 12
+was the rename release. The old package `reactflow` had a default export; the new
+one does not:
+
+```tsx
+// v11
+import ReactFlow from "reactflow"
+// v12
+import { ReactFlow } from "@xyflow/react"
+```
+
+This matters more than a rename usually would, because the v11 to v12 boundary
+also moved the fields you read most often. See
+<a href="/docs/tools/packages/xyflow-react/gotchas">Gotchas</a> for the list.
 
 ## When to reach for it
 
-{/* Concrete triggers. Each bullet is a situation, not a feature. */}
+- Users need to **inspect** a graph you computed: pan, zoom, click a node for
+  detail, follow an edge. A static image cannot do this and a scrollable SVG does
+  it badly.
+- Users need to **edit** a graph: drag nodes, draw connections between them, and
+  have you persist the result.
+- Your nodes are real UI, not shapes. Because a node is just a React component,
+  a node can contain a form, a chart, a status badge, or a live value.
 
 ## When not to
 
-{/* The honest exclusions — cases where a static SVG, a Mermaid diagram, or a
-    plain list is the right answer instead. This section is what makes the page
-    worth more than the README. */}
+- **A diagram nobody interacts with.** If the graph is authored and fixed, a
+  Mermaid diagram is a fraction of the code and has no runtime failure modes. See
+  <a href="/docs/reference/diagrams">Diagrams</a>.
+- **A graph that is really a list or a tree.** A collapsible tree view is easier
+  to build, easier to navigate with a keyboard, and easier to read. Reach for a
+  canvas only when the relationships are genuinely not hierarchical, or when
+  spatial arrangement carries meaning.
+- **Thousands of nodes rendered at once.** Every node is a mounted React
+  component with a DOM element and a `ResizeObserver` entry. There are levers for
+  this, notably `onlyRenderVisibleElements`, but if your target is a
+  ten-thousand-node graph you want a canvas or WebGL renderer instead.
 
 ## The mental model
 
-{/* The two or three invariants that, once understood, make the API predictable.
-    Wrap version-sensitive snippets in <Pattern version="…" checked="…">. */}
+Three invariants make the rest of the API predictable.
+
+**1. Node positions are your state, and changes come back to you as a change
+list.** The component does not mutate your array. When the user drags a node, it
+calls `onNodesChange` with a list of change descriptors, and you apply them.
+`applyNodeChanges(changes, nodes)` is the pure reducer that does it. If you pass
+`nodes` but no `onNodesChange`, drags visually revert on the next render, because
+the internal copy gets overwritten from your unchanged prop.
+
+<Pattern version="@xyflow/react 12.11" checked="2026-08">
+
+```tsx
+// Controlled: you own the array, changes flow back through the handler.
+const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
+
+<ReactFlow
+  edges={edges}
+  nodes={nodes}
+  onEdgesChange={onEdgesChange}
+  onNodesChange={onNodesChange}
+/>
+```
+
+`useNodesState` is a convenience wrapper over `useState` plus
+`applyNodeChanges`. It is documented as a prototyping aid, so expect to replace
+it once your graph state has real requirements. The alternative is uncontrolled
+mode: pass `defaultNodes`/`defaultEdges` instead and the store owns the array
+outright, in which case you need no change handler at all.
+
+</Pattern>
+
+**2. Node dimensions are measured after the first paint, never before.** Nodes
+render once unmeasured, the browser lays them out, and only then does a shared
+`ResizeObserver` report each size and populate `node.measured`. There is no
+render or effect in which a brand-new node already knows its own width. This is
+the root cause of most layout and `fitView` problems, and the library ships a
+hook specifically to wait for it:
+
+```tsx
+const nodesInitialized = useNodesInitialized()
+```
+
+It returns `false` until every node has been measured, then `true`. Gate any
+first automatic layout on it.
+
+**3. The store is per-flow, and hooks throw outside it.** `<ReactFlow>` creates a
+provider implicitly, so its own children can use hooks. A sibling component
+cannot. Any hook that touches the store — `useReactFlow`, `useViewport`,
+`useNodes`, `useStore` — throws error `001` if there is no provider above it. Wrap
+the region explicitly when you need a toolbar or a sidebar to reach the flow:
+
+```tsx
+<ReactFlowProvider>
+  <Toolbar />
+  <ReactFlow ... />
+</ReactFlowProvider>
+```
 
 ## Setup
 
-{/* Install line, required peer setup, and the required-stylesheet /
-    parent-height class of mistake that makes a first render appear blank. */}
+```sh
+pnpm add @xyflow/react
+```
+
+React 17 or newer. There is no upper bound, so React 19 is fine.
+
+Two requirements cause the classic "it renders nothing" first attempt, and the
+library detects both at dev time:
+
+1. **Import the stylesheet.** `import "@xyflow/react/dist/style.css"` — or
+   `base.css` if you intend to style everything yourself. Without it the DOM
+   exists but nothing is positioned. Detected as error `013`, by checking whether
+   `.react-flow__pane` has the `z-index` the shipped CSS sets.
+2. **Give the parent container an explicit height.** `<ReactFlow>` fills its
+   parent, and a parent with no height is zero pixels tall. Detected as error
+   `004`.
+
+<Callout variant="warning" title="A zero-height parent does not fail loudly">
+  After logging error `004`, the library falls back to a 500 by 500 internal
+  viewport. The graph therefore half-works: measurements and `fitView` operate on
+  a size that has nothing to do with the screen. If positioning seems subtly
+  wrong, check the container height before anything else.
+</Callout>
+
+All numbered errors route through an overridable `onError` prop on `<ReactFlow>`,
+which is how you forward them to your own logger or assert on them in a test.
+
+Next: <a href="/docs/tools/packages/xyflow-react/recipes">Recipes</a> for
+automatic layout with dagre and for custom nodes,
+<a href="/docs/tools/packages/xyflow-react/architecture">Architecture</a> for
+where a settings panel and canvas overlays belong in the component tree, then
+<a href="/docs/tools/packages/xyflow-react/gotchas">Gotchas</a> for the failure
+modes ordered by how often they ship.

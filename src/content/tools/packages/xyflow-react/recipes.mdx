@@ -1,0 +1,268 @@
+---
+title: Recipes
+section: Packages
+group: "@xyflow/react"
+library: tools
+order: 10
+appliesTo: "@xyflow/react 12.11, @dagrejs/dagre 3.1"
+reviewed: 2026-08
+description: Task-oriented recipes for laying out a graph with dagre, re-laying it out without discarding positions the user moved, and building a custom node that connects.
+---
+
+## Lay out a graph with dagre on first render
+
+**Trigger.** You have nodes and edges but no positions, and you need the graph
+arranged before the user sees it.
+
+The whole recipe hinges on one ordering fact: node dimensions do not exist until
+after the first paint. A layout computed during the first render feeds dagre
+zero-size boxes, and dagre stacks them all in one spot. Gate on
+`useNodesInitialized`, which flips `true` only once every node has been measured.
+
+<Pattern version="@xyflow/react 12.11, @dagrejs/dagre 3.1" checked="2026-08">
+<SourceTrail refs={[{ id: "xyflow-layouting-example", note: "The structure follows the official Layouting example, but corrects two things it omits: it reads measured node sizes instead of hardcoding them, and it converts dagre's centered coordinates to xyflow's top-left positions.", role: "adapted-from" }, { id: "xyflow-react-source", locator: "hooks/useNodesInitialized.ts, container/NodeRenderer/useResizeObserver.ts", note: "Establishes that measured dimensions arrive from a ResizeObserver after paint, and that useNodesInitialized is the intended gate for layout.", role: "supports" }]}>
+
+```ts
+import dagre from "@dagrejs/dagre"
+import { type Edge, type Node, Position } from "@xyflow/react"
+
+// Fallbacks only matter for a node that somehow escaped measurement.
+const FALLBACK_HEIGHT = 40
+const FALLBACK_WIDTH = 160
+
+export function layoutGraph(
+  nodes: Node[],
+  edges: Edge[],
+  graph: dagre.graphlib.Graph,
+  rankdir: "LR" | "TB" = "TB"
+): Node[] {
+  const horizontal = rankdir === "LR"
+  graph.setGraph({ rankdir })
+
+  for (const node of nodes) {
+    graph.setNode(node.id, {
+      height: node.measured?.height ?? FALLBACK_HEIGHT,
+      width: node.measured?.width ?? FALLBACK_WIDTH,
+    })
+  }
+  for (const edge of edges) {
+    graph.setEdge(edge.source, edge.target)
+  }
+
+  dagre.layout(graph)
+
+  return nodes.map((node) => {
+    const laid = graph.node(node.id)
+    return {
+      ...node,
+      // dagre reports the box center; xyflow positions by the top-left corner.
+      position: {
+        x: laid.x - laid.width / 2,
+        y: laid.y - laid.height / 2,
+      },
+      sourcePosition: horizontal ? Position.Right : Position.Bottom,
+      targetPosition: horizontal ? Position.Left : Position.Top,
+    }
+  })
+}
+```
+
+</SourceTrail>
+</Pattern>
+
+Wire it to the measurement gate, and note that `fitView` has to be awaited rather
+than called and forgotten:
+
+```tsx
+const graph = useRef(createDagreGraph()).current
+const nodesInitialized = useNodesInitialized()
+const laidOut = useRef(false)
+const { fitView } = useReactFlow()
+
+useEffect(() => {
+  if (!nodesInitialized || laidOut.current) return
+  laidOut.current = true
+  setNodes(layoutGraph(nodes, edges, graph))
+  void fitView()
+}, [edges, fitView, graph, nodes, nodesInitialized, setNodes])
+```
+
+`createDagreGraph()` is the two mandatory setup calls, held in a ref so the same
+graph object survives across re-layouts. That identity is what keeps node
+ordering stable between runs:
+
+```ts
+function createDagreGraph() {
+  const graph = new dagre.graphlib.Graph({ compound: true, multigraph: true })
+  graph.setGraph({})
+  graph.setDefaultEdgeLabel(() => ({}))
+  return graph
+}
+```
+
+<Callout variant="warning" title="The official example omits two of these steps">
+  The `Layouting` example in the xyflow repository hardcodes every node as 150 by
+  50 rather than reading `measured`, does not convert dagre's centered
+  coordinates, and never calls `fitView` after applying the layout. Copying it
+  reproduces all three problems.
+</Callout>
+
+## Re-lay out a graph without discarding positions the user moved
+
+**Trigger.** Your graph is auto-arranged, then the user drags nodes and adds
+more, and you need to re-arrange without throwing away their work.
+
+Start with the constraint, because it determines the whole design: **dagre cannot
+pin a node.** There is no "keep this one where it is" input. Every call lays out
+every node from scratch. So the choice of what to preserve is entirely yours, made
+after layout returns.
+
+Track which nodes the user positioned deliberately. A drag arrives as a `position`
+change with `dragging: false` on release, which is the moment to record it:
+
+```tsx
+const [pinned, setPinned] = useState<Set<string>>(new Set())
+
+const handleNodesChange = useCallback(
+  (changes: NodeChange<Node>[]) => {
+    for (const change of changes) {
+      if (change.type === "position" && change.dragging === false) {
+        setPinned((prev) => new Set(prev).add(change.id))
+      }
+    }
+    onNodesChange(changes)
+  },
+  [onNodesChange]
+)
+```
+
+Then re-layout everything and re-apply the pinned positions on top:
+
+```ts
+function relayout(
+  nodes: Node[],
+  edges: Edge[],
+  graph: dagre.graphlib.Graph,
+  pinned: Set<string>
+): Node[] {
+  const byId = new Map(nodes.map((node) => [node.id, node]))
+  return layoutGraph(nodes, edges, graph).map((node) =>
+    pinned.has(node.id)
+      ? { ...node, position: byId.get(node.id)!.position }
+      : node
+  )
+}
+```
+
+The tradeoff is explicit and unavoidable: pinned nodes can now overlap
+freshly-placed ones, because dagre allocated their space and you then moved them
+out of it. Pick one of three postures and be deliberate about it:
+
+| Posture                    | Behavior                                                                 | Use when                                                          |
+| -------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Preserve pinned            | The code above. User positions always win; overlap is possible.           | The user's arrangement carries meaning you must not destroy.        |
+| Layout wins, with consent   | Re-layout everything, but only on an explicit user action such as a button. | The arrangement is a convenience and the user chose to reset it.    |
+| Layout only the new subtree | Feed dagre only unpinned nodes plus their edges, and offset the result.    | New nodes arrive in clusters that are structurally separate.        |
+
+<Callout variant="tip" title="Reuse the graph object across runs">
+  Because you re-layout repeatedly here, the stability feature in
+  `@dagrejs/dagre` 3.x matters more than usual: pass the **same** `Graph` instance
+  every time and unchanged parts of the diagram keep their ordering instead of
+  reshuffling. A fresh `new Graph()` per call gives up that guarantee.
+</Callout>
+
+One cleanup detail: `dagre.layout` mutates the graph in place and the graph
+accumulates nodes across calls, so a node the user deleted lingers and keeps
+influencing layout. Remove it explicitly when your node list shrinks:
+
+```ts
+for (const id of graph.nodes()) {
+  if (!byId.has(id)) graph.removeNode(id)
+}
+```
+
+## Build a custom node that can be connected
+
+**Trigger.** You need a node that is real UI, and users must be able to draw
+edges to and from it.
+
+Two rules cover most of it. A node needs at least one `<Handle>` to be
+connectable at all, and `nodeTypes` must be a stable object reference.
+
+<Pattern version="@xyflow/react 12.11" checked="2026-08">
+
+```tsx
+import { Handle, type NodeProps, Position } from "@xyflow/react"
+
+function StatusNode({ data, selected }: NodeProps) {
+  return (
+    <div data-selected={selected} className="rounded-md border px-3 py-2">
+      <Handle position={Position.Top} type="target" />
+      <span>{data.label as string}</span>
+      <Handle position={Position.Bottom} type="source" />
+    </div>
+  )
+}
+
+// Module scope, not inside a component. A new object each render triggers
+// error 002 and can remount every node.
+const nodeTypes = { status: StatusNode }
+```
+
+</Pattern>
+
+Your component receives `id`, `data`, `type`, `selected`, `dragging`,
+`draggable`, `selectable`, `deletable`, `zIndex`, `isConnectable`, `width`,
+`height`, `parentId`, `sourcePosition`/`targetPosition`, and
+`positionAbsoluteX`/`positionAbsoluteY`. Note the last two: in v11 they were
+`posX`/`posY`.
+
+To restrict which connections are legal, pass `isValidConnection`. It can only
+narrow the rules, not widen them. The default `ConnectionMode.Strict` already
+rejects source-to-source and target-to-target, and your predicate runs only after
+that check passes. Set `connectionMode={ConnectionMode.Loose}` if you need those
+pairings.
+
+## Persist and restore an edited graph
+
+**Trigger.** The user's edits must survive a reload.
+
+Nodes and edges are plain serializable objects, with one exclusion:
+`measured` is derived, so drop it and let the library re-measure on load.
+Dropping it also avoids stale sizes if your node rendering changes.
+
+```ts
+const snapshot = {
+  edges,
+  nodes: nodes.map(({ measured, ...node }) => node),
+  viewport: getViewport(),
+}
+```
+
+On restore, pass `defaultViewport` from the saved viewport rather than calling
+`fitView`, otherwise you override the position the user left off at. If you do
+want `fitView` on load, remember it is queued and asynchronous, and that nodes
+without a size are excluded from its bounds calculation, so it must run after
+measurement.
+
+## Nest nodes inside a group
+
+**Trigger.** Some nodes belong visually inside a container node.
+
+Set `parentId` on the child. Two rules are strict:
+
+- **The parent must appear before its children in the `nodes` array.** The library
+  builds its lookup in array order, and a child whose parent is not yet in the
+  lookup is skipped with a console warning.
+- **A child's `position` is relative to the parent's top-left**, not the canvas.
+
+Then choose containment behavior: `extent: "parent"` clamps the child inside the
+parent, and `expandParent: true` grows the parent to fit the child instead.
+`extent: "parent"` on a node with no `parentId` is error `005`.
+
+<Callout variant="info" title="Subflows and dagre do not compose for free">
+  Dagre supports compound graphs, but its parent-aware layout is the most
+  intricate part of the package. If you need both grouping and automatic layout,
+  lay out each group's contents separately and place the group nodes yourself
+  rather than handing dagre the nested structure.
+</Callout>

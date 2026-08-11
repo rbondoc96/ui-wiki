@@ -1,0 +1,230 @@
+---
+title: Gotchas
+section: Packages
+group: "@xyflow/react"
+library: tools
+order: 20
+appliesTo: "@xyflow/react 12.11"
+reviewed: 2026-08
+description: The failure modes that actually ship — measurement timing, v11-era field names that silently read undefined, unstable nodeTypes, and a numbered error table that maps each dev warning to one concrete mistake.
+---
+
+Ordered by how often each one ships, not by severity.
+
+## Every node is stacked at the same position after an automatic layout
+
+**Symptom.** The layout runs without error and all nodes land on top of each
+other, or in one tight column.
+
+**Cause.** You fed the layout algorithm nodes whose dimensions were still
+unknown. Nodes render once unmeasured, the browser paints, and only then does a
+shared `ResizeObserver` populate `node.measured`. Reading `measured.width` in the
+effect that created the nodes always yields `undefined`, which most layout code
+coerces to `0`.
+
+**Fix.** Gate the first layout on `useNodesInitialized()`, which returns `false`
+until every node has been measured. See
+<a href="/docs/tools/packages/xyflow-react/recipes">Recipes</a> for the full
+pattern.
+
+## Nodes are offset by half their size
+
+**Symptom.** The graph is shaped correctly but shifted, and edges attach slightly
+inside or outside the node boxes.
+
+**Cause.** `@dagrejs/dagre` reports the node **center** as `x`/`y`. `position` in
+xyflow is the **top-left corner**.
+
+**Fix.** Subtract `width / 2` and `height / 2` when copying positions out of
+dagre. The `Layouting` example in the xyflow repository does not do this, so most
+copied snippets have the bug.
+
+## Dragging a node snaps it back
+
+**Symptom.** The node follows the pointer, then jumps to its original position on
+release. Sometimes accompanied by error `015`.
+
+**Cause.** You passed `nodes` as a controlled prop but did not wire
+`onNodesChange`. The component reports the drag as a change list and never
+mutates your array, so your unchanged prop overwrites the internal state on the
+next render.
+
+**Fix.** Either handle changes, or hand over ownership entirely.
+
+<DoDont>
+<Dont>
+
+```tsx
+// Controlled, but changes have nowhere to go.
+<ReactFlow edges={edges} nodes={nodes} />
+```
+
+</Dont>
+<Do>
+
+```tsx
+// Controlled: apply the changes yourself.
+<ReactFlow
+  edges={edges}
+  nodes={nodes}
+  onEdgesChange={onEdgesChange}
+  onNodesChange={onNodesChange}
+/>
+
+// Or uncontrolled: the store owns the arrays, no handler needed.
+<ReactFlow defaultEdges={edges} defaultNodes={nodes} />
+```
+
+</Do>
+</DoDont>
+
+## `node.positionAbsolute` is undefined
+
+**Symptom.** Code copied from a tutorial reads `node.positionAbsolute`,
+`node.width`, or `node.computed` and gets `undefined`.
+
+**Cause.** All three are v11-era or intermediate-prerelease shapes. Version 12
+moved them.
+
+**Fix.** Use the v12 names:
+
+| You want                    | v11                     | v12                                            |
+| --------------------------- | ----------------------- | ---------------------------------------------- |
+| Measured size               | `node.width` / `.height` | `node.measured.width` / `.height`               |
+| Absolute position of a node | `node.positionAbsolute` | `useInternalNode(id)`, then `internals.positionAbsolute` |
+| Position in a custom node   | `posX` / `posY`         | `positionAbsoluteX` / `positionAbsoluteY`       |
+| Bounds of a node set        | `getRectOfNodes`        | `getNodesBounds`                                |
+| Screen to canvas coordinate | `project`               | `screenToFlowPosition`                          |
+| Viewport for bounds         | `getTransformForBounds` | `getViewportForBounds`                          |
+| Edge reconnection handler   | `onEdgeUpdate`          | `onReconnect`                                   |
+
+`node.width`/`height` still exist in v12, but their meaning changed: they are now
+optional sizes **you** supply as a hint, useful for server rendering, not values
+the library fills in.
+
+Also gone: the `nodeInternals` map, replaced by a `nodes` array plus a reused
+`nodeLookup` Map. And node updates must be immutable now — returning a mutated
+node object no longer registers as a change.
+
+<SourceTrail refs={[{ id: "xyflow-react-changelog", locator: "12.0.0-next.0 and 12.0.0-next.13", note: "The rename table is drawn from the migration notes, including the intermediate node.computed shape that was renamed to node.measured before release.", role: "supports" }]}>
+
+The intermediate prereleases used `node.computed.width`. Snippets from that window
+exist in the wild and are wrong for the stable release too.
+
+</SourceTrail>
+
+## Every node re-renders, or worse, remounts
+
+**Symptom.** A console warning about creating a new `nodeTypes` object. Depending
+on which mistake you made, either a quiet loss of memoization, or custom nodes
+that visibly flicker and reset their internal state.
+
+**Cause.** Error `002` covers two different mistakes with very different costs.
+
+| What you did                                                                | Consequence                                                                                                                              |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Recreated the `nodeTypes` **object** each render, with stable components in it | Memoization is defeated. `nodeTypes` is a prop on the memoized node renderer and on every node wrapper, so all node wrappers re-render. The DOM is stable and no state is lost. |
+| Defined the **component function** inline during render                       | The React element type changes identity, so React unmounts and remounts that node's subtree. Internal state is lost.                       |
+
+**Fix.** Define both the map and the components at module scope. If the map must
+be built from props, `useMemo` it, and keep the component functions themselves
+outside the render.
+
+<Callout variant="info" title="The warning is about memoization, not remounting">
+  Error `002` fires for both rows above, and the cheap case is far more common. If
+  you see the warning but no flickering, you are in the first row: a real but
+  bounded cost, not a correctness problem.
+</Callout>
+
+## The graph renders nothing
+
+**Symptom.** DOM elements exist in the inspector but nothing is visible.
+
+Three causes, in order of likelihood:
+
+1. **The stylesheet was never imported.** Add
+   `import "@xyflow/react/dist/style.css"`. Reported as error `013`.
+2. **The parent container has no height.** Reported as error `004`, then silently
+   backfilled with a 500 by 500 internal viewport, so the flow may appear to
+   half-work at the wrong scale rather than clearly fail.
+3. **Duplicate or missing node `id`s.** These collide in the internal lookup maps,
+   so nodes overwrite each other and appear to vanish. This one raises no
+   numbered error.
+
+## `fitView` does nothing useful
+
+**Symptom.** You call `fitView()` after adding nodes and the viewport does not
+frame them, or frames only some of them.
+
+**Cause.** Two things compound. `fitView` from `useReactFlow` is **queued and
+asynchronous**, not immediate, and it operates on whatever bounds exist when the
+queue drains. Meanwhile, nodes without a known size are **excluded from the bounds
+calculation entirely**. Called in the same tick you add nodes, it races the
+`ResizeObserver`.
+
+**Fix.** Run it after measurement, and use its promise when the ordering matters.
+
+```ts
+await fitView()
+```
+
+## A child node is ignored, and the console mentions a missing parent
+
+**Symptom.** A node with `parentId` renders at the canvas origin instead of inside
+its parent, plus a warning that the parent node was not found.
+
+**Cause.** The lookup is built in array order, so a child that appears before its
+parent finds nothing to attach to.
+
+**Fix.** Order the `nodes` array so every parent precedes its children. Remember
+too that a child's `position` is relative to the parent's top-left corner.
+
+## The numbered error table
+
+Every dev-time message comes from one table in `@xyflow/system`, and each number
+maps to one concrete mistake. All of them route through the `onError` prop on
+`<ReactFlow>`, which is how you forward them to a logger or assert on them in a
+test.
+
+| Code  | Mistake                                                                             |
+| ----- | ----------------------------------------------------------------------------------- |
+| `001` | A hook was used outside `<ReactFlowProvider>`. **Thrown, not warned.**                |
+| `002` | `nodeTypes`/`edgeTypes` recreated on every render.                                   |
+| `003` | A node's `type` matches no key in `nodeTypes`; falls back to `default`.               |
+| `004` | The container has zero width or height.                                             |
+| `005` | `extent: "parent"` on a node with no `parentId`.                                     |
+| `006` | Tried to create an edge with no `source` or no `target`.                              |
+| `007` | `reconnectEdge` was given an `oldEdge` id that is not in the current edges.           |
+| `008` | An edge's `sourceHandle`/`targetHandle` id does not exist on the referenced node.     |
+| `009` | `markerEnd`/`markerStart` used an unknown marker `type`.                              |
+| `010` | `<Handle>` rendered outside a custom node.                                            |
+| `011` | An edge's `type` matches no key in `edgeTypes`; falls back to `default`.              |
+| `012` | Looked up a node that was already deleted — the classic `onNodeClick` race.           |
+| `013` | The stylesheet was never imported.                                                  |
+| `014` | `useNodeConnections()` called outside a node without passing an `id`.                 |
+| `015` | Dragged a node whose dimensions were never measured, usually a change-handler bug.    |
+| `016` | Same as `012`, for edges and `onEdgeClick`.                                           |
+
+<SourceTrail refs={[{ id: "xyflow-system-constants", note: "The complete error table and its exact numbering, including that 008 and 009 are declared out of order and that there is no 000.", role: "defines" }, { id: "xyflow-react-source", locator: "container/GraphView/useStylesLoadedWarning.ts, hooks/useResizeHandler.ts", note: "Confirms how the missing-stylesheet and zero-height-container checks are performed, including the silent 500 by 500 fallback.", role: "supports" }]}>
+
+The stylesheet check is indirect: it measures the computed `z-index` of
+`.react-flow__pane` and compares it to the value only the shipped CSS sets. Custom
+CSS that changes that property will produce a false positive.
+
+</SourceTrail>
+
+## Performance notes worth knowing before you need them
+
+Not failures, but the levers exist and are easy to miss.
+
+- **Node re-renders are already scoped.** The node renderer subscribes only to the
+  list of visible node **ids**, and each node wrapper is memoized, so dragging one
+  node does not re-render all of them. Unstable props or non-memoized work inside
+  your own custom node component undoes this.
+- **`onlyRenderVisibleElements`** renders only nodes intersecting the viewport.
+  This is the main large-graph lever, and the cost is that nodes mount and unmount
+  while panning. Avoid expensive mount-time work in custom nodes if you enable it.
+- **Prefer `useReactFlow()` for imperative reads and actions**, since it does not
+  subscribe to store updates. Reach for `useStore(selector, shallow)` only when you
+  need a reactive subscription and no dedicated hook covers it, and always pass a
+  narrow selector plus an equality function.

@@ -1,0 +1,199 @@
+---
+title: Gotchas
+section: Packages
+group: "@dagrejs/dagre"
+library: tools
+order: 20
+appliesTo: "@dagrejs/dagre 3.1"
+reviewed: 2026-08
+description: Dagre fails silently rather than loudly — missing dimensions, a missing graph label, and center-versus-corner coordinates all produce a rendered graph that is simply wrong.
+---
+
+Ordered by how often each one ships. Dagre has almost no runtime validation, so
+most mistakes here produce a graph that renders and looks plausible.
+
+## Every node is stacked in one spot
+
+**Symptom.** The layout runs, no error appears, and all nodes land at nearly the
+same coordinate, or in one tight overlapping column.
+
+**Cause.** You did not set `width` and `height` on the nodes. Dagre reads only
+those two fields, and both default to `0`. Zero-size boxes need no separation
+from each other, so the algorithm correctly packs them into a point.
+
+**Fix.** Always pass dimensions. If you do not know the real rendered size yet,
+pass a deliberate estimate rather than nothing, and re-run layout once the real
+sizes are known.
+
+<DoDont>
+<Dont>
+
+```ts
+// Silently lays out zero-size points.
+g.setNode(node.id, {})
+```
+
+</Dont>
+<Do>
+
+```ts
+g.setNode(node.id, {
+  height: node.measured?.height ?? 40,
+  width: node.measured?.width ?? 160,
+})
+```
+
+</Do>
+</DoDont>
+
+## Every node is offset by half its own size
+
+**Symptom.** The graph is shaped correctly but sits shifted up and to the left,
+and edges attach slightly inside or outside the node boxes.
+
+**Cause.** Dagre reports the node **center** as `x`/`y`. Most renderers,
+`@xyflow/react` included, position a node by its **top-left corner**.
+
+**Fix.** Subtract half the width and half the height when you read positions
+out. Note that the layout example in the xyflow repository does *not* do this, so
+copying it reproduces the bug.
+
+```ts
+const laid = g.node(id)
+const position = {
+  x: laid.x - laid.width / 2,
+  y: laid.y - laid.height / 2,
+}
+```
+
+## `layout()` throws on a graph that looks fully built
+
+**Symptom.** A `TypeError` from inside dagre, reading a property of `undefined`,
+on a graph where you set every node and edge you care about.
+
+**Cause.** One of two missing setup calls. Either `g.setGraph({})` was never
+called, so there is no graph label to read options from, or
+`g.setDefaultEdgeLabel(() => ({}))` was never called and an edge was added
+without an explicit label object.
+
+**Fix.** Treat both as part of constructing the graph, not as options.
+
+```ts
+const g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
+g.setGraph({ rankdir: "TB" })
+g.setDefaultEdgeLabel(() => ({}))
+```
+
+## Re-running layout reshuffles nodes that did not change
+
+**Symptom.** You lay out the graph, the user adds one node, you lay out again,
+and unrelated nodes swap places. The diagram appears to jump.
+
+**Cause.** The crossing-reduction step is a heuristic. When two orderings tie on
+crossing count, either is a valid answer, so an unrelated change can flip the
+result.
+
+**Fix.** Reuse the **same `Graph` object** across layout runs. Version 3.x keeps
+a `WeakMap` of each graph's previous layout and biases ordering toward it, which
+is what keeps repeated layouts stable. This is keyed on object identity, so a
+fresh `new Graph()` with identical topology gets none of the benefit. If you need
+the old non-stable behavior, pass `useDynamic: false`.
+
+<Callout variant="tip" title="This is fork-only behavior">
+  Layout stability does not exist in the unmaintained unscoped `dagre`. If you
+  are following advice that says "dagre output is non-deterministic, cache the
+  positions yourself," that advice predates this feature.
+</Callout>
+
+## Layout is slow on a large graph
+
+**Symptom.** Layout takes hundreds of milliseconds or worse, and blocks the
+main thread while it does.
+
+**Cause.** The default `ranker` is `"network-simplex"`, an iterative optimization
+that produces the shortest total edge length and costs the most to run. The
+crossing-reduction sweep also scales with rank count multiplied by nodes per
+rank.
+
+**Fix.** Trade layout quality for speed by choosing a cheaper ranker.
+
+| `ranker`           | Cost    | Result                                       |
+| ------------------ | ------- | -------------------------------------------- |
+| `"network-simplex"` | highest | Default. Shortest, most even edge lengths.   |
+| `"tight-tree"`      | medium  | Slightly longer edges, noticeably cheaper.   |
+| `"longest-path"`    | lowest  | Fast and crude; long, uneven edges.          |
+| `"none"`            | none    | Skips ranking. You must preset `rank` yourself. |
+
+Setting `acyclicer: "greedy"` also helps on dense graphs with many cycles.
+
+## Tuning the layout changes nothing
+
+**Symptom.** You set an option and the output is identical.
+
+**Cause.** Either the option belongs on the graph label and you passed it
+elsewhere, or you misspelled it. Node and edge labels carry an
+`[key: string]: unknown` index signature, so TypeScript accepts any typo as
+custom data and dagre ignores it. `LayoutOptions` is a flattened union, so
+nothing stops you from passing node-only fields like `width` as a top-level
+graph option, where they do nothing.
+
+**Fix.** Set layout options on `setGraph`. The ones that visibly change output:
+
+| Option              | Default    | Effect                                                     |
+| ------------------- | ---------- | ---------------------------------------------------------- |
+| `rankdir`           | `"TB"`     | Flow direction: `TB`, `BT`, `LR`, `RL`.                     |
+| `ranksep`           | `50`       | Gap between ranks, along the flow direction.               |
+| `nodesep`           | `50`       | Gap between neighbors within one rank.                     |
+| `edgesep`           | `20`       | Gap reserved around edges during ordering.                  |
+| `marginx`/`marginy` | `0`        | Padding around the whole drawing.                          |
+| `align`             | none       | Biases long chains toward a corner: `UL`, `UR`, `DL`, `DR`. |
+| `rankalign`         | `"center"` | Vertical placement within a rank of mixed-height nodes.     |
+
+Graph-label option names are canonicalized to lower case, so `nodeSep` and
+`nodesep` are equivalent **on the graph label only**. The same forgiveness does
+not apply to node or edge labels.
+
+<Callout variant="info" title="ranksep is halved internally">
+  Dagre halves `ranksep` and doubles every edge's `minlen` so that edge labels
+  get their own half-rank slot. Ranks therefore sit closer together than the
+  number you pass suggests. Tune by observation, not arithmetic.
+</Callout>
+
+## Edges have no `x`/`y`
+
+**Symptom.** You read `edge.x` to place a label and get `undefined`.
+
+**Cause.** Dagre only assigns an edge label position when the edge label has a
+non-zero `width` **and** `height`. A label-less edge has no `x`/`y` property at
+all, rather than a zero value.
+
+**Fix.** Set `width` and `height` on the edge label when you intend to place a
+label there, and treat `edge.x` as optional everywhere else. Use `edge.points`,
+the ordered route through the graph, for drawing the edge itself. Its first and
+last entries are already clipped to the node boundaries.
+
+## Things that are not gotchas
+
+Worth stating, because each one gets pre-emptively worked around in code that
+does not need to:
+
+- **Cycles.** Dagre makes the graph acyclic itself and restores the original edge
+  direction afterward. Do not pre-process them out.
+- **Self-loops.** Supported, and rendered as a fixed seven-point spline that
+  bulges to a side appropriate for the `rankdir`.
+- **Disconnected components.** Handled by wiring everything through an invisible
+  dummy root, so a graph in several pieces lays out without error.
+
+<Callout variant="warning" title="Per-cluster rankdir is the fragile part">
+  Setting `rankdir` on a node that has children makes dagre lay that subgraph out
+  independently and splice it back as a rigid block. This is a fork addition, it
+  is the most intricate code in the package, and nested clusters with edges
+  crossing between siblings are where its edge cases live. Treat it as advanced.
+</Callout>
+
+<SourceTrail refs={[{ id: "dagre-layout-source", locator: "buildLayoutGraph, updateInputGraph, runLayout", note: "The defaults table, the write-back field list, and the ranker and acyclicer option sets are all read from the layout pipeline source rather than from documentation.", role: "supports" }, { id: "dagre-layout-test", note: "Confirms center-based coordinates, cycle and self-loop handling, graph-label case insensitivity, and the layout-stability behavior.", role: "supports" }]}>
+
+Everything on this page was verified against the `@dagrejs/dagre` 3.1 source and
+its test suite, not against its README.
+
+</SourceTrail>

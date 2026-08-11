@@ -36,6 +36,22 @@ export type SourceTrailRef = {
 }
 
 export const SOURCES = {
+  "dagre-layout-source": {
+    access: "public",
+    author: "@dagrejs/dagre",
+    id: "dagre-layout-source",
+    title: "dagre — lib/layout.ts",
+    type: "code",
+    url: "https://github.com/dagrejs/dagre/blob/master/lib/layout.ts",
+  },
+  "dagre-layout-test": {
+    access: "public",
+    author: "@dagrejs/dagre",
+    id: "dagre-layout-test",
+    title: "dagre — test/layout-test.ts",
+    type: "code",
+    url: "https://github.com/dagrejs/dagre/blob/master/test/layout-test.ts",
+  },
   "mdn-const": {
     access: "public",
     author: "MDN",
@@ -147,6 +163,46 @@ export const SOURCES = {
     title: "You Might Not Need an Effect",
     type: "docs",
     url: "https://react.dev/learn/you-might-not-need-an-effect",
+  },
+  "xyflow-layouting-example": {
+    access: "public",
+    author: "xyflow",
+    id: "xyflow-layouting-example",
+    title: "xyflow — examples/react Layouting example",
+    type: "code",
+    url: "https://github.com/xyflow/xyflow/blob/main/examples/react/src/examples/Layouting/index.tsx",
+  },
+  "xyflow-nodes-data-example": {
+    access: "public",
+    author: "xyflow",
+    id: "xyflow-nodes-data-example",
+    title: "xyflow — examples/react UseNodesData example",
+    type: "code",
+    url: "https://github.com/xyflow/xyflow/tree/main/examples/react/src/examples/UseNodesData",
+  },
+  "xyflow-react-changelog": {
+    access: "public",
+    author: "xyflow",
+    id: "xyflow-react-changelog",
+    title: "@xyflow/react — CHANGELOG",
+    type: "code",
+    url: "https://github.com/xyflow/xyflow/blob/main/packages/react/CHANGELOG.md",
+  },
+  "xyflow-react-source": {
+    access: "public",
+    author: "@xyflow/react",
+    id: "xyflow-react-source",
+    title: "@xyflow/react — packages/react source",
+    type: "code",
+    url: "https://github.com/xyflow/xyflow/tree/main/packages/react/src",
+  },
+  "xyflow-system-constants": {
+    access: "public",
+    author: "@xyflow/system",
+    id: "xyflow-system-constants",
+    title: "@xyflow/system — src/constants.ts error message table",
+    type: "code",
+    url: "https://github.com/xyflow/xyflow/blob/main/packages/system/src/constants.ts",
   },
   "vue-suspense": {
     access: "public",

@@ -4,16 +4,10 @@ section: Packages
 group: "@dagrejs/dagre"
 library: tools
 order: 0
-description: A layered graph layout algorithm that computes node coordinates and renders nothing. What it solves, the maintained-fork situation, and why it usually shows up next to a graph renderer rather than alone.
+appliesTo: "@dagrejs/dagre 3.1"
+reviewed: 2026-08
+description: A layered graph layout algorithm that computes node coordinates and renders nothing — it mutates the graph you hand it, reports node centers rather than corners, and is a maintained fork whose extra features most online answers predate.
 ---
-
-<Callout variant="warning" title="Scaffold — not yet researched">
-  This page exists to hold the nav slot and fix the page shape. The prose below
-  is a skeleton, not vetted guidance. See
-  `docs/package-notes-template.md` for what each section must contain, and
-  delete this callout once the page has real content, an `appliesTo` version,
-  and a `reviewed` stamp.
-</Callout>
 
 `@dagrejs/dagre` computes a layered layout for a directed graph: you give it
 nodes with dimensions and a set of edges, it assigns each node an `x`/`y`. It
@@ -23,24 +17,121 @@ pairs with a renderer such as
 
 ## What it is
 
-{/* One paragraph: the layout problem it solves and the class of algorithm it
-    uses. Note that `@dagrejs/dagre` is the maintained scope and what that means
-    for anyone reading results for the unscoped `dagre`. */}
+Dagre implements the Sugiyama family of layered layout: it makes the graph
+acyclic, assigns every node an integer **rank** (a row, or a column under
+`rankdir: "LR"`), orders nodes within each rank to reduce edge crossings, then
+converts ranks and orders into real coordinates. That pipeline is why dagre
+draws clean trees and pipelines and why it cannot draw a force-directed cloud.
+It is a geometry calculator, not a component.
+
+The scope matters. `dagre` (unscoped) is the original package and is
+unmaintained. `@dagrejs/dagre` is the maintained fork, and it is **not just a
+republish**. Version 3.x adds behavior the original never had: layout stability
+across repeated calls, per-cluster `rankdir`, and a `rankalign` option. Almost
+every blog post, Stack Overflow answer, and AI-generated snippet you will find
+describes the unscoped package. Treat outside material as describing a subset of
+what you have installed.
 
 ## When to reach for it
 
-{/* Concrete triggers — the graph shapes it lays out well. */}
+- You have a directed graph with a clear flow direction, and you need positions
+  for it: a build pipeline, a state machine, a dependency tree, an org chart.
+- Your node positions are computed rather than authored. If a human placed the
+  nodes, you do not need a layout algorithm.
+- You want the layout decision to live outside your rendering library, so you
+  can re-run it on the server, in a test, or against a graph you never render.
 
 ## When not to
 
-{/* Graph shapes it lays out badly, and what to use instead. */}
+- **Undirected or cyclic-by-nature graphs**, such as a social graph or a network
+  topology. Dagre will tear cycles apart to force a direction, and the result
+  reads as a hierarchy that is not really there. Reach for a force-directed
+  layout instead.
+- **Very wide, shallow graphs.** Dagre optimizes vertical compactness within
+  each rank, so a node with 200 children produces one enormous row. You need a
+  different algorithm or a manual grouping pass.
+- **Anything you can draw as a static diagram.** If the graph is authored, fixed,
+  and not interactive, a Mermaid diagram is less code and less risk. See
+  <a href="/docs/reference/diagrams">Diagrams</a>.
 
 ## The mental model
 
-{/* Coordinate conventions, the required inputs, and what the returned graph
-    actually contains. Wrap version-sensitive snippets in
-    <Pattern version="…" checked="…">. */}
+Three invariants explain most of the API.
+
+**1. `layout()` mutates your graph and returns the same reference.** It does not
+produce a new positioned graph. Internally it builds a private copy, runs the
+whole pipeline on that, then writes a fixed set of fields back onto the graph you
+passed: `x`, `y`, `rank`, and `order` on nodes, `points` on edges, and
+`width`/`height` on the graph label. Any other field you attached to a node
+survives untouched, so it is safe to carry your own data on the labels.
+
+**2. Node `x`/`y` is the center of the box, not a corner.** This is the single
+most expensive misreading of dagre, because nothing errors: your graph renders,
+and every node sits offset by half its own size. Any renderer that positions by
+top-left corner needs an explicit conversion.
+
+<Pattern version="@dagrejs/dagre 3.1" checked="2026-08">
+<SourceTrail refs={[{ id: "dagre-layout-test", locator: "a single 50x100 node lands at x:25, y:50", note: "Establishes that dagre reports the node center, by asserting coordinates equal to half the node's declared dimensions.", role: "supports" }]}>
+
+```ts
+import dagre from "@dagrejs/dagre"
+
+const g = new dagre.graphlib.Graph()
+g.setGraph({ rankdir: "TB" })
+g.setDefaultEdgeLabel(() => ({}))
+
+g.setNode("a", { height: 40, width: 160 })
+g.setNode("b", { height: 40, width: 160 })
+g.setEdge("a", "b")
+
+dagre.layout(g)
+
+// `x`/`y` are the box center. Convert if your renderer wants a corner.
+const a = g.node("a")
+const topLeft = { x: a.x - a.width / 2, y: a.y - a.height / 2 }
+```
+
+</SourceTrail>
+</Pattern>
+
+**3. Dagre only reads `width` and `height` off a node, and both default to
+`0`.** It has no idea how large your rendered nodes are. If you forget to set
+dimensions, layout succeeds, no warning is logged, and every node collapses to a
+zero-size point stacked at nearly the same coordinate. "All my nodes are on top
+of each other" is almost always this.
 
 ## Setup
 
-{/* Install line and the minimum viable graph — build, layout, read positions. */}
+```sh
+pnpm add @dagrejs/dagre
+```
+
+`@dagrejs/graphlib` comes along as a dependency, and dagre re-exports its `Graph`
+constructor as `dagre.graphlib.Graph`, so you do not import graphlib yourself.
+
+Two setup lines are effectively mandatory even though neither is described as
+required:
+
+- **`g.setGraph({})`.** Without it, `g.graph()` returns `undefined` and `layout()`
+  throws while reading options off it.
+- **`g.setDefaultEdgeLabel(() => ({}))`.** Without it, `g.setEdge("a", "b")` with
+  no label object stores nothing, and `layout()` throws trying to read the
+  label's properties. Every test in the dagre repo sets this.
+
+Construct the graph as `new dagre.graphlib.Graph(...)` with `multigraph: true`
+and `compound: true` if there is any chance you will later need parallel edges
+between the same pair of nodes, or parent/child clusters. Dagre forces both
+options on its internal copy regardless, but your own graph must be constructed
+with them to legally accept `setEdge` with a name or `setParent` at all.
+
+<Callout variant="warning" title="A stale type declaration ships in the package">
+  `dist/dagre.d.ts` is a leftover hand-written declaration file that is wrong in
+  places — it types `layout()` as returning `void`, and misspells `labeloffset`
+  as `labeloffest`. It is not referenced by `package.json`, so normal resolution
+  uses the correct generated types in `dist/types/`. Flagged only because a
+  tool that resolves types by filename can still find it.
+</Callout>
+
+Continue to <a href="/docs/tools/packages/dagre/gotchas">Gotchas</a> for the
+layout options that actually change the output, and for the failure modes worth
+knowing before you hit them.

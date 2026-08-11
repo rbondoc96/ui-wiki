@@ -1,0 +1,390 @@
+---
+title: Architecture
+section: Packages
+group: "@xyflow/react"
+library: tools
+order: 15
+appliesTo: "@xyflow/react 12.11"
+reviewed: 2026-08
+description: Where a settings panel and canvas overlays belong in the component tree, and which state to keep out of the component that renders ReactFlow — the placement decision is about prop identity, not about JSX position.
+---
+
+Once a graph is editable, the question stops being "how do I change a node" and
+becomes "where does the thing that changes it live." This page answers that with
+the actual memoization boundaries rather than with intuition, because the
+intuitive answer is wrong in an instructive way.
+
+## The one rule that matters
+
+**`<ReactFlow>` is not memoized.** Any re-render of the component that renders it
+re-invokes the whole component. So a settings panel whose state lives in that
+same component re-renders the flow on every keystroke.
+
+But that alone is cheap. The expensive part is what the re-render does to **prop
+identity**, because the props are the only channel through which a parent render
+can reach the graph.
+
+<Mermaid
+  title="How a parent re-render reaches node components"
+  description="A parent re-render always re-invokes ReactFlow and StoreUpdater. StoreUpdater compares each tracked prop by reference and writes to the store only on a change. Node components subscribe to their own store entry, so they re-render only if their own node object changed identity."
+  chart={`
+flowchart TD
+  parent[Parent component re-renders]
+  rf["ReactFlow: not memoized<br/>always re-invoked"]
+  su["StoreUpdater: not memoized<br/>compares every tracked prop by reference"]
+  stable[All references stable]
+  changed[Some reference changed]
+  nowrite[No store write<br/>nothing downstream re-renders]
+  write[setNodes / setState]
+  lookup[Store nodeLookup updated]
+  node[Only nodes whose own entry<br/>changed identity re-render]
+
+  parent --> rf --> su
+  su --> stable --> nowrite
+  su --> changed --> write --> lookup --> node
+`}
+/>
+
+Two consequences follow, and both are counterintuitive.
+
+**The `nodes` array never reaches your node components as a prop.** It is
+consumed once by an internal updater, written into a lookup map, and from then on
+each node component subscribes to its own entry in that map. So a new `nodes`
+array identity does not, by itself, re-render every node. Only nodes whose own
+object identity changed re-render.
+
+**A re-render with unchanged prop references costs almost nothing.** The internal
+updater compares roughly sixty tracked props by reference inside an effect, and
+writes to the store only for the ones that actually changed. Reference-stable
+props mean no store write, which means no subscriber re-renders.
+
+So the real failure mode is not "the panel is in the wrong place." It is a parent
+re-render that recreates `nodes`, `edges`, handlers, or `nodeTypes` inline, which
+turns every panel keystroke into a full store write.
+
+## Where the panel goes
+
+The placement rule is about **which component owns the state**, not where the
+panel sits in the JSX.
+
+`children` of `<ReactFlow>` are passed through untouched. So a panel that is its
+own component, placed as a child, is fully isolated: its own state updates
+re-render it and nothing else. The same panel written inline inside the component
+that owns `nodes` re-renders the entire flow, even though the JSX looks identical.
+
+<DoDont>
+<Dont>
+
+```tsx
+// Panel state lives in the component that owns the graph.
+// Every keystroke re-renders <ReactFlow> and re-diffs every tracked prop.
+function FlowCanvas() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [label, setLabel] = useState("")
+
+  return (
+    <ReactFlow nodes={nodes} onNodesChange={onNodesChange}>
+      <Panel position="top-right">
+        <input onChange={(e) => setLabel(e.target.value)} value={label} />
+      </Panel>
+    </ReactFlow>
+  )
+}
+```
+
+</Dont>
+<Do>
+
+```tsx
+// The panel owns its own state, in its own component.
+// Typing in it never touches <ReactFlow>.
+function FlowCanvas() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+
+  return (
+    <ReactFlow nodes={nodes} onNodesChange={onNodesChange}>
+      <SettingsPanel />
+    </ReactFlow>
+  )
+}
+```
+
+</Do>
+</DoDont>
+
+<Callout variant="tip" title="Panel state that must reach ReactFlow as a prop">
+  Some settings really are `<ReactFlow>` props: `snapGrid`, `nodesDraggable`,
+  `connectionMode`. Those cannot avoid re-rendering the flow, and should not try
+  to. Keep them in a small store or context that the flow reads, and make sure the
+  value you pass is reference-stable — an inline `snapGrid={[16, 16]}` is a new
+  array every render, so it writes to the store every render.
+</Callout>
+
+## Reading versus writing from a panel
+
+This is the decision that determines whether your panel re-renders on every drag
+frame.
+
+`useReactFlow()` **does not subscribe to graph state.** Its only store
+subscription is a single boolean for whether pan and zoom initialized, and the
+helper object is built once with an empty dependency list. A panel that calls
+`useReactFlow()` and nothing else will never re-render because a node moved. That
+is what makes it the correct hook for a panel that writes.
+
+If the panel must also *display* the node it is editing, subscribe narrowly:
+
+| Hook                            | Re-renders when                                                    | Use for                                            |
+| ------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------- |
+| `useReactFlow()`                | Effectively never.                                                 | Any panel that only writes.                        |
+| `useNodesData(id)`              | That node's `data` reference changes. Ignores position and selection. | Showing or editing one node's data.                 |
+| `useNodeConnections(...)`       | That node's own connection set changes.                            | "Does this node have an input yet."                |
+| `useStore(selector, shallow)`   | Whatever your selector returns changes.                            | Anything narrow that no dedicated hook covers.      |
+| `useNodes()` / `useEdges()`     | **Every** node or edge change, including every drag frame.          | Debug overlays. Rarely a real panel.               |
+
+`useNodesData` is worth understanding precisely, because its narrowness is the
+whole point: it returns only `id`, `type`, and `data` for the ids you ask for, and
+its equality check compares exactly those, using reference identity for `data`.
+Dragging the node you are editing does not re-render your panel.
+
+<Callout variant="warning" title="A first-party example gets this wrong on purpose">
+  The `Provider` example's sidebar in the xyflow repository selects
+  `store.nodes.map(...)` with no equality function, so it builds a new array and
+  re-renders on every drag frame. It demonstrates the API, not the pattern. Do not
+  copy its selector.
+</Callout>
+
+## Writing node data
+
+`updateNodeData(id, partial)` from `useReactFlow()` is the intended write path. It
+shallow-merges into `data` by default, so you pass only the keys you changed. Pass
+`{ replace: true }` to swap `data` wholesale, and pass an updater function when
+the new value depends on the old one.
+
+Several writes in one event handler are safe. Writes are pushed onto a queue,
+applied in push order in a layout effect, and committed as **one** state update
+with **one** change-handler call. So a loop that updates twenty nodes produces one
+render, not twenty.
+
+<Callout variant="info" title="Controlled input plus updateNodeData">
+  Driving a text input purely from `data` can make the caret jump, because the
+  value round-trips through the store. The first-party pattern keeps a local
+  `useState` for the input value and calls `updateNodeData` alongside it. The local
+  state is the source of truth for the caret; the node data is the source of truth
+  for the graph.
+</Callout>
+
+## Overlays and their coordinate spaces
+
+Four overlay primitives exist, and the thing that distinguishes them is which
+coordinate space they live in. Picking the wrong one produces content that either
+refuses to move with the canvas or grows unreadably when the user zooms.
+
+| Component        | Rendered                                | Coordinate space                                                 | Use for                                       |
+| ---------------- | --------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------- |
+| `<Panel>`        | Outside the viewport transform          | **Screen.** Unaffected by pan and zoom.                           | Settings panels, toolbars, legends, minimaps.  |
+| `<ViewportPortal>` | Portalled inside the viewport transform | **Canvas.** Pans and zooms with the nodes.                        | Annotations, guides, backgrounds tied to coordinates. |
+| `<NodeToolbar>`  | Anchored to a node, counter-transformed  | **Hybrid.** Position tracks the node, scale stays constant.        | Per-node action buttons that stay legible when zoomed out. |
+| `<NodeResizer>`  | Inside a custom node                     | **Canvas.** Scales with the node.                                 | Resize handles on a resizable node.            |
+
+A settings panel is a `<Panel>`. The hybrid behavior of `<NodeToolbar>` is the
+one worth remembering: it is the only primitive that follows canvas position while
+resisting canvas scale, which is exactly what a per-node action menu needs.
+
+## Where your own state lives
+
+The internal store is a closed shape with no extension seam. You can technically
+force extra keys into it, but it is untyped, undocumented, and every internal
+selector assumes the fixed shape. Do not use it as an app state bus.
+
+That leaves two legitimate homes, and the choice is not arbitrary:
+
+- **On the node, in `data`.** Correct for anything that is a property *of a node*:
+  its label, its value, its validation state. It serializes with the graph for
+  free, and `updateNodeData` plus `useNodesData` give you a narrow read and write
+  path.
+- **In your own store, beside the flow.** Correct for anything *about the editing
+  session*: which node is selected in your panel, whether the panel is open, an
+  unsaved form draft, the current layout direction. None of this belongs in the
+  graph, and none of it should be serialized with it.
+
+The dividing question is whether the value should still exist after a reload of
+the saved graph. If yes, it goes in `data`.
+
+## A worked example
+
+Four files. The point is the boundaries between them, so read the imports as
+carefully as the bodies.
+
+<SourceTrail refs={[{ id: "xyflow-nodes-data-example", note: "The local-state-plus-updateNodeData input pattern and the useNodesData subscription are taken from this first-party example, generalized from a custom node to an external panel.", role: "adapted-from" }, { id: "xyflow-react-source", locator: "hooks/useReactFlow.ts, components/StoreUpdater/index.tsx, components/BatchProvider", note: "Confirms that useReactFlow does not subscribe to graph state, that StoreUpdater compares tracked props by reference before writing, and that writes coalesce into a single commit.", role: "supports" }]}>
+
+<CodeTabs>
+  <CodeTab label="editor-store.ts">
+
+```ts
+import { create } from "zustand"
+
+// Editing-session state. Deliberately not in the graph: none of it should
+// survive a reload of a saved diagram.
+type EditorStore = {
+  rankdir: "LR" | "TB"
+  selectedNodeId: string | null
+  setRankdir: (rankdir: "LR" | "TB") => void
+  setSelectedNodeId: (id: string | null) => void
+}
+
+export const useEditorStore = create<EditorStore>((set) => ({
+  rankdir: "TB",
+  selectedNodeId: null,
+  setRankdir: (rankdir) => set({ rankdir }),
+  setSelectedNodeId: (selectedNodeId) => set({ selectedNodeId }),
+}))
+```
+
+  </CodeTab>
+  <CodeTab label="flow-canvas.tsx">
+
+```tsx
+import { ReactFlow, useEdgesState, useNodesState } from "@xyflow/react"
+import type { Node, NodeMouseHandler } from "@xyflow/react"
+import { useCallback } from "react"
+
+import { useEditorStore } from "./editor-store.ts"
+import { SettingsPanel } from "./settings-panel.tsx"
+import { StatusNode } from "./status-node.tsx"
+
+// Module scope. Inside the component body this would be a new object every
+// render, which defeats node memoization.
+const nodeTypes = { status: StatusNode }
+
+// Same reason: a stable reference, so it is never re-written to the store.
+const SNAP_GRID: [number, number] = [16, 16]
+
+export function FlowCanvas({ initialNodes }: { initialNodes: Node[] }) {
+  const [nodes, , onNodesChange] = useNodesState(initialNodes)
+  const [edges, , onEdgesChange] = useEdgesState([])
+
+  // Reads the setter only, so this component does not re-render on selection.
+  const selectNode = useEditorStore((s) => s.setSelectedNodeId)
+
+  const onNodeClick = useCallback<NodeMouseHandler>(
+    (_, node) => selectNode(node.id),
+    [selectNode]
+  )
+
+  return (
+    <div className="h-full">
+      <ReactFlow
+        edges={edges}
+        nodeTypes={nodeTypes}
+        nodes={nodes}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={onNodeClick}
+        onNodesChange={onNodesChange}
+        snapGrid={SNAP_GRID}
+        snapToGrid
+      >
+        {/* Its own component, so its state updates never reach this one. */}
+        <SettingsPanel />
+      </ReactFlow>
+    </div>
+  )
+}
+```
+
+  </CodeTab>
+  <CodeTab label="settings-panel.tsx">
+
+```tsx
+import { Panel, useNodesData, useReactFlow } from "@xyflow/react"
+import { useEffect, useState } from "react"
+
+import { useEditorStore } from "./editor-store.ts"
+
+export function SettingsPanel() {
+  // Does not subscribe to graph state. Safe to call from a panel that writes.
+  const { updateNodeData } = useReactFlow()
+
+  const selectedNodeId = useEditorStore((s) => s.selectedNodeId)
+
+  // Narrow subscription: fires only when this node's `data` reference changes.
+  // Dragging the node does not re-render this panel.
+  const nodeData = useNodesData(selectedNodeId ?? "")
+
+  // Local state owns the caret; node data owns the graph.
+  const [label, setLabel] = useState("")
+  useEffect(() => {
+    setLabel((nodeData?.data.label as string) ?? "")
+  }, [nodeData?.data.label, selectedNodeId])
+
+  if (!selectedNodeId || !nodeData) {
+    return (
+      <Panel position="top-right">
+        <p>Select a node.</p>
+      </Panel>
+    )
+  }
+
+  return (
+    <Panel position="top-right">
+      <label>
+        Label
+        <input
+          onChange={(event) => {
+            setLabel(event.target.value)
+            // Shallow-merges into `data`; other keys are untouched.
+            updateNodeData(selectedNodeId, { label: event.target.value })
+          }}
+          value={label}
+        />
+      </label>
+    </Panel>
+  )
+}
+```
+
+  </CodeTab>
+  <CodeTab label="status-node.tsx">
+
+```tsx
+import { Handle, Position } from "@xyflow/react"
+import type { NodeProps } from "@xyflow/react"
+import { memo } from "react"
+
+// memo matters here: the node wrapper already isolates store updates, but a
+// re-render of the wrapper for any other reason still re-invokes this body.
+export const StatusNode = memo(function StatusNode({
+  data,
+  selected,
+}: NodeProps) {
+  return (
+    <div data-selected={selected} className="rounded-md border px-3 py-2">
+      <Handle position={Position.Top} type="target" />
+      <span>{data.label as string}</span>
+      <Handle position={Position.Bottom} type="source" />
+    </div>
+  )
+})
+```
+
+  </CodeTab>
+</CodeTabs>
+
+</SourceTrail>
+
+Four boundaries are doing the work in that example, and each one maps to a
+mechanism above:
+
+1. `nodeTypes` and `SNAP_GRID` are module-scope constants, so they never trigger
+   a store write.
+2. `FlowCanvas` subscribes to the **setter** in the editor store, not to the
+   selected id, so clicking a node does not re-render the flow.
+3. `SettingsPanel` is a separate component, so its input state stays local.
+4. `SettingsPanel` writes with `useReactFlow` and reads with `useNodesData`, so it
+   subscribes to one node's data and nothing else.
+
+<Callout variant="warning" title="This page extends the three-page package contract">
+  `docs/package-notes-template.md` specifies Overview, Recipes, and Gotchas. This
+  page is a fourth, at `order: 15`, because the content is a design decision
+  rather than a task or a symptom. Fold it into Recipes if the contract should
+  stay closed.
+</Callout>
