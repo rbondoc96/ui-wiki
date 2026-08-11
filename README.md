@@ -28,12 +28,20 @@ description: One-line summary shown under the page title.
 ---
 ```
 
-| Field         | Purpose                                                   |
-| ------------- | --------------------------------------------------------- |
-| `title`       | Page title + sidebar/search label                         |
-| `section`     | Sidebar group it belongs to                               |
-| `order`       | Sort order within the section (also orders sections)      |
-| `description` | Optional subtitle + search keyword                        |
+| Field         | Required | Purpose                                                                     |
+| ------------- | -------- | --------------------------------------------------------------------------- |
+| `title`       | yes      | Page title + sidebar/search label                                           |
+| `section`     | yes      | Sidebar category it belongs to                                              |
+| `order`       | no       | Sort order within the section (also orders sections; defaults to `0`)       |
+| `description` | no       | Subtitle + search keyword                                                   |
+| `library`     | no       | Top-level nav bucket: `building-blocks` (default), `app-screens`, `tools`    |
+| `group`       | no       | Collapsible sub-group inside a section, e.g. `React` under `Frameworks`      |
+| `appliesTo`   | no       | Version the page's guidance targets, e.g. `React 19`                        |
+| `reviewed`    | no       | `YYYY-MM` freshness stamp for when the page was last checked                |
+
+The nav has three tiers: **library** (top nav) → **section** (sidebar heading) →
+**group** (collapsible sub-group). Pages with no `group` render directly under
+their section, before any groups.
 
 The file path becomes the URL: `src/content/foundations/spacing.mdx` →
 `/docs/foundations/spacing` (an `index.mdx` maps to the folder root). `##` and
