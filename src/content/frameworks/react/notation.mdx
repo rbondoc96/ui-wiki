@@ -1,0 +1,193 @@
+---
+title: Reading the notation
+section: React
+group: Reference
+library: frameworks
+order: 90
+reviewed: 2026-09
+description: A decoder ring for the math notation used on the React pages. Every symbol, what it is called out loud, and the exact formula in this wiki that uses it.
+---
+
+Several React pages state a rule twice: once as a formula, once in plain
+English. The formula is not decoration. It pins down the parts that prose
+smudges — _every_ versus _some_, _at all times_ versus _eventually_, _is a
+subset of_ versus _is equal to_. This page is the decoder ring for every symbol
+those formulas use.
+
+You never need this page to follow the wiki. Any formula that appears comes with
+a literal reading beside it, and the surrounding prose states the same rule in
+words. This is for when you want to read the formula itself.
+
+## How to read any of them
+
+Three habits cover most of it.
+
+1. **Read left to right as an English sentence.** Almost every statement here is
+   shaped "for every X, some relationship holds," and reads that way out loud.
+2. **Subscripts are labels, not arithmetic.** $t_{\text{hydration}}$ is "the
+   moment hydration finished," not $t$ times something.
+3. **The symbols are a small fixed set.** There are nine below, and the React
+   pages never introduce a tenth without spelling it out first.
+
+## Sets and membership
+
+A set is just a collection of allowed values. Two symbols do almost all the
+work, and they are the pair most often confused.
+
+| Symbol | Said out loud | Means |
+| --- | --- | --- |
+| $\in$ | "is an element of" | One single thing sits inside the collection |
+| $\subseteq$ | "is a subset of" | A whole collection sits inside another collection |
+
+The difference is one thing versus many. A single lane _is an element of_ the
+set of possible lanes; the set of things render touches _is a subset of_ what
+the server provides.
+
+$\{0,1\}^{31}$ is the set of every 31-slot arrangement of on-and-off bits. The
+exponent means "31 of these in a row," so the set holds every possible 31-bit
+pattern.
+
+<Notation reads="A lane is one of the 31-bit on-or-off patterns.">
+
+$$
+\ell \in \{0,1\}^{31}
+$$
+
+</Notation>
+
+Vertical bars around something mean **its size**: $|S|$ is "the number of things
+in $S$." When it wraps a subtree, read it as "how big that subtree is."
+
+## Functions and their domains
+
+$\mathrm{dom}(f)$ is the **domain** of the function $f$: the set of inputs it is
+actually defined for. Division has a domain that excludes zero. `localStorage`
+has a domain that excludes the server.
+
+A function is **total** on a domain when it is defined for every input in it,
+and **partial** when there are inputs it has no answer for. The whole
+server-versus-client problem is a function that is total in the browser and
+partial on the server.
+
+<Notation reads="Everything render is allowed to touch has to exist on the server too.">
+
+$$
+\mathrm{dom}(f_{\mathrm{render}}) \subseteq \mathrm{ServerEnv}
+$$
+
+</Notation>
+
+## Quantifiers
+
+Two symbols, and they are the reason the formulas are worth keeping: prose
+routinely leaves out which one it meant.
+
+| Symbol | Said out loud | Means |
+| --- | --- | --- |
+| $\forall$ | "for all" / "for every" | No exceptions, every single case |
+| $\exists$ | "there exists" | At least one such thing must exist |
+
+$\forall$ is a promise about every case, so a single counterexample breaks it.
+$\exists$ is a requirement that something be provided, so it is satisfied the
+moment you supply one.
+
+## Equality versus equivalence
+
+$=$ is ordinary equality. $\equiv$ ("is identical to," or "is equivalent to")
+is the stronger claim that two things match in every observable respect, not
+just that a comparison happens to return true.
+
+Put together with a quantifier, the pair says something prose cannot say
+briefly: not "they match after hydration" but "at every instant from hydration
+onward, without gaps."
+
+<Notation reads="From the moment hydration finishes onward, the description and the painted DOM must stay identical.">
+
+$$
+\forall t \ge t_{\text{hydration}},\quad D \equiv H_t
+$$
+
+</Notation>
+
+## Inverses
+
+$\sigma$ (sigma) is a stand-in name for a side effect, treated as a function
+that takes a state $s$ and returns a changed one. $\sigma^{-1}$ is its
+**inverse**: the operation that undoes it.
+
+The superscript $-1$ never means "raised to the power of minus one" here. It
+means "the function that runs this one backwards."
+
+Writing $\sigma^{-1}(\sigma(s)) = s$ is the precise way to say _cleanup is
+complete_: apply the effect, then apply the undo, and you are back at exactly
+the state you started from. Not close to it. It.
+
+<Notation reads="Any effect that escapes its own fiber must come with an undo that restores the exact prior state.">
+
+$$
+\exists\, \sigma^{-1}\ \text{such that}\ \sigma^{-1}(\sigma(s)) = s
+$$
+
+</Notation>
+
+## Proportionality
+
+$\propto$ means "grows in step with." It is deliberately weaker than $=$: it
+claims a relationship between two quantities without claiming a formula or a
+constant. "Layout cost $\propto$ dirty subtree size" says doubling the subtree
+roughly doubles the cost, and says nothing about the milliseconds.
+
+That weakness is the point. The exact numbers depend on the browser, the
+machine, and the frame; the shape of the relationship does not.
+
+<Notation reads="After commit, the costs that matter are the browser's, and each one grows with a different thing.">
+
+$$
+\begin{align*}
+\text{layout thrashing} &\propto |\text{dirty subtree}| \\
+\text{IC misses} &\propto \text{polymorphism} \\
+\text{long tasks} &\propto \text{main-thread work}
+\end{align*}
+$$
+
+</Notation>
+
+## One formula, read end to end
+
+Take the hydration statement apart piece by piece:
+
+$$
+\forall t \ge t_{\text{hydration}},\quad D \equiv H_t
+$$
+
+- $\forall t$ — for every moment in time $t$
+- $t \ge t_{\text{hydration}}$ — from the instant hydration finished, onward
+- $D$ — the description, meaning the tree React says should exist
+- $H_t$ — the host tree, meaning the DOM actually painted, as it stands at that
+  moment
+- $\equiv$ — must be identical, in every observable way
+
+Read as a sentence: **at every moment after hydration, what React describes and
+what the browser has painted are the same tree.** Any window where they differ,
+however brief, is a bug rather than a race you got away with.
+
+## Conventions used here
+
+The letters are reused deliberately across the React pages, so they are worth
+learning once.
+
+| Symbol | Stands for |
+| --- | --- |
+| $D$ | The description, the tree React says should exist |
+| $H_t$ | The host tree, the real DOM at time $t$ |
+| $\ell$ | A lane, one scheduling priority |
+| $\sigma$ | A side effect, viewed as a state change |
+| $f_{\mathrm{render}}$ | Render, viewed as a function of props and state |
+
+<Callout variant="tip" title="This page, in one line">
+
+The notation is never load-bearing. It exists to say _every_, _always_, and
+_exactly_ without ambiguity, and every formula in this wiki ships with the
+English sentence it encodes right next to it.
+
+</Callout>
