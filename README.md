@@ -50,6 +50,10 @@ The file path becomes the URL: `src/content/foundations/spacing.mdx` →
 A `<Callout variant="info|tip|warning" title="…">` component is available in
 any MDX file.
 
+Math is written as LaTeX: `$…$` inline, `$$…$$` as its own block. KaTeX renders
+it at build time, so it costs no client JavaScript. A formula KaTeX can't parse
+**fails the build** and names the file, line, and bad command.
+
 ## Commands
 
 - `pnpm dev` — dev server (port 3000)

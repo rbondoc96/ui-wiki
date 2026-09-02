@@ -17,6 +17,7 @@ Don't run `dev`/`build` unless you actually need to verify something; the checks
 - **Frontmatter has more fields than the README lists.** Beyond `title`/`section`/`order`/`description`: `group` (adds a third collapsible nav tier, e.g. `Foundations` under the `React` section), `library` (top-level nav bucket, e.g. `frameworks`/`app-screens`), `appliesTo`, and `reviewed` (freshness stamp). See the `Doc` type and `buildNavTree` in `src/lib/docs.ts`.
 - **Custom MDX components MUST be registered.** Add them to the `mdxComponents` map in `src/components/mdx-components.tsx` (and import at the top). Unregistered components silently render as nothing. Keep the map ABC-sorted — it matches the house style and the user's stated preference.
 - **Code fences** run through Shiki at build (`vite.config.ts`), dual light/dark theme, wrapped by the `CodeBlock` component (copy button + language label). A Shiki transformer surfaces the fence language as `data-language` on `<pre>`.
+- **Math (`$…$` / `$$…$$`) renders at build** via `remark-math` + `rehype-katex`, so it ships as plain HTML + MathML with no client JS — no SSR hazard. `rehype-katex` only *warns* on a malformed formula and emits red error text, so `rehypeKatexStrict` (`src/lib/mdx/rehype-katex-strict.ts`) runs after it and throws, naming the file, line, and offending command. Keep it registered after `rehypeKatex`. KaTeX's CSS is imported in `src/styles.css`; it inherits `currentColor`, so both themes work without token wiring.
 
 ## Theming (this trips people up)
 
