@@ -1,6 +1,6 @@
 # Package Notes Template
 
-The contract for pages under `Tools → Packages`. Research agents documenting a
+The contract for pages in the `Packages` library. Research agents documenting a
 frontend package must follow this file. It exists so that thirty package folders
 written by thirty agent runs still read as one wiki.
 
@@ -24,14 +24,14 @@ Does not belong here:
 
 ## Where files go
 
-One directory per package, under `src/content/tools/packages/`. The directory
-name is the URL segment, so use the unscoped, hyphenated package name:
+One directory per package, under `src/content/packages/`. The directory name
+is the URL segment, so use the unscoped, hyphenated package name:
 
 ```txt
-src/content/tools/packages/xyflow-react/index.mdx    → /docs/tools/packages/xyflow-react
-src/content/tools/packages/xyflow-react/recipes.mdx  → /docs/tools/packages/xyflow-react/recipes
-src/content/tools/packages/xyflow-react/gotchas.mdx  → /docs/tools/packages/xyflow-react/gotchas
-src/content/tools/packages/dagre/index.mdx           → /docs/tools/packages/dagre
+src/content/packages/xyflow-react/index.mdx    → /docs/packages/xyflow-react
+src/content/packages/xyflow-react/recipes.mdx  → /docs/packages/xyflow-react/recipes
+src/content/packages/xyflow-react/gotchas.mdx  → /docs/packages/xyflow-react/gotchas
+src/content/packages/dagre/index.mdx           → /docs/packages/dagre
 ```
 
 Nothing needs registering. `src/lib/docs.ts` globs `src/content/**/*.mdx`, so the
@@ -44,7 +44,7 @@ sidebar, routes, search, and prev/next pick the file up as soon as it exists.
 title: Gotchas
 section: Packages
 group: "@xyflow/react"
-library: tools
+library: packages
 order: 20
 appliesTo: "@xyflow/react 12.3"
 reviewed: 2026-08
@@ -57,7 +57,7 @@ description: One sentence stating the page's claim, not its topic. Shown as the 
 | `title`       | yes      | `Overview`, `Recipes`, or `Gotchas` — the sidebar scopes it by group  |
 | `section`     | yes      | Always the literal `Packages`                                        |
 | `group`       | yes      | The **exact** package name, double-quoted                            |
-| `library`     | yes      | Always the literal `tools`                                           |
+| `library`     | yes      | Always the literal `packages`                                        |
 | `order`       | yes      | `0` overview, `10` recipes, `20` gotchas                             |
 | `appliesTo`   | yes      | Package name + the major.minor the guidance was verified against      |
 | `reviewed`    | yes      | `YYYY-MM` the page was last checked against that version              |

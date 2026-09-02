@@ -54,6 +54,7 @@ export const LIBRARIES: Array<Library> = [
   { label: "Building Blocks", slug: "building-blocks" },
   { label: "App & Screens", slug: "app-screens" },
   { label: "Tools", slug: "tools" },
+  { label: "Packages", slug: "packages" },
 ]
 
 const DEFAULT_LIBRARY = LIBRARIES[0].slug

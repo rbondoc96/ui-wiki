@@ -34,7 +34,7 @@ description: One-line summary shown under the page title.
 | `section`     | yes      | Sidebar category it belongs to                                              |
 | `order`       | no       | Sort order within the section (also orders sections; defaults to `0`)       |
 | `description` | no       | Subtitle + search keyword                                                   |
-| `library`     | no       | Top-level nav bucket: `building-blocks` (default), `app-screens`, `tools`    |
+| `library`     | no       | Top-level nav bucket. See `LIBRARIES` in `src/lib/docs.ts`                  |
 | `group`       | no       | Collapsible sub-group inside a section, e.g. `React` under `Frameworks`      |
 | `appliesTo`   | no       | Version the page's guidance targets, e.g. `React 19`                        |
 | `reviewed`    | no       | `YYYY-MM` freshness stamp for when the page was last checked                |

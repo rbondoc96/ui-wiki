@@ -2,7 +2,7 @@
 title: Overview
 section: Packages
 group: "@xyflow/react"
-library: tools
+library: packages
 order: 0
 appliesTo: "@xyflow/react 12.11"
 reviewed: 2026-08
@@ -13,7 +13,7 @@ description: A React renderer for node-and-edge graphs — it owns the canvas, t
 the pan/zoom viewport, node dragging, and edge connection. It does **not**
 decide where nodes go — positions are your data. That single boundary explains
 most of what follows, including why a layout library like
-<a href="/docs/tools/packages/dagre">@dagrejs/dagre</a> is a near-mandatory
+<a href="/docs/packages/dagre">@dagrejs/dagre</a> is a near-mandatory
 companion for any graph you didn't hand-place.
 
 ## What it is
@@ -37,7 +37,7 @@ import { ReactFlow } from "@xyflow/react"
 
 This matters more than a rename usually would, because the v11 to v12 boundary
 also moved the fields you read most often. See
-<a href="/docs/tools/packages/xyflow-react/gotchas">Gotchas</a> for the list.
+<a href="/docs/packages/xyflow-react/gotchas">Gotchas</a> for the list.
 
 ## When to reach for it
 
@@ -153,9 +153,9 @@ library detects both at dev time:
 All numbered errors route through an overridable `onError` prop on `<ReactFlow>`,
 which is how you forward them to your own logger or assert on them in a test.
 
-Next: <a href="/docs/tools/packages/xyflow-react/recipes">Recipes</a> for
+Next: <a href="/docs/packages/xyflow-react/recipes">Recipes</a> for
 automatic layout with dagre and for custom nodes,
-<a href="/docs/tools/packages/xyflow-react/architecture">Architecture</a> for
+<a href="/docs/packages/xyflow-react/architecture">Architecture</a> for
 where a settings panel and canvas overlays belong in the component tree, then
-<a href="/docs/tools/packages/xyflow-react/gotchas">Gotchas</a> for the failure
+<a href="/docs/packages/xyflow-react/gotchas">Gotchas</a> for the failure
 modes ordered by how often they ship.
