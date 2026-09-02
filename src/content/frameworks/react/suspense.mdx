@@ -1,15 +1,15 @@
 ---
 title: How Suspense works
-section: Frameworks
-group: React
-library: tools
-order: 15
+section: React
+group: Internals
+library: frameworks
+order: 25
 appliesTo: React 19
 reviewed: 2026-07
 description: Suspense suspends by throwing a thenable — an exception that means "not an error, retry when this settles." Why the throw, why a Promise, why routers throw too, and why Vue and Solid never throw at all.
 ---
 
-[Patterns](/docs/tools/react/patterns) covers _when_ to reach for a
+[Patterns](/docs/frameworks/react/patterns) covers _when_ to reach for a
 <Term id="suspense-boundary">boundary</Term> and where to place it. This page is
 the layer under that: what actually happens when a component "suspends," why the
 mechanism is a `throw`, and why the same trick shows up in routers — plus why
@@ -46,7 +46,7 @@ sequenceDiagram
 
 <Callout variant="warning" title="Don't throw promises by hand">
   If you're reaching for <code>throw somePromise</code> in your own component,
-  you want <a href="/docs/tools/react/suspense#what-you-actually-write-use">
+  you want <a href="/docs/frameworks/react/suspense#what-you-actually-write-use">
   <code>use()</code></a> instead. The throw is plumbing that libraries own.
 </Callout>
 
@@ -193,7 +193,7 @@ unrelated to suspending.
 ## Where to go next
 
 This page is the _how_; [Patterns → Let Suspense own the
-waiting](/docs/tools/react/patterns) is the _when and where_. On the server,
+waiting](/docs/frameworks/react/patterns) is the _when and where_. On the server,
 the same boundaries become streaming flush points — see [Streaming SSR &
 Suspense](/docs/app-screens/rendering/streaming-ssr). And what to actually
 render inside a fallback (skeleton vs. spinner, and when not to flash one) is

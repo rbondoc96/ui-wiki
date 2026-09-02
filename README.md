@@ -35,7 +35,7 @@ description: One-line summary shown under the page title.
 | `order`       | no       | Sort order within the section (also orders sections; defaults to `0`)       |
 | `description` | no       | Subtitle + search keyword                                                   |
 | `library`     | no       | Top-level nav bucket. See `LIBRARIES` in `src/lib/docs.ts`                  |
-| `group`       | no       | Collapsible sub-group inside a section, e.g. `React` under `Frameworks`      |
+| `group`       | no       | Collapsible sub-group inside a section, e.g. `Foundations` under `React`    |
 | `appliesTo`   | no       | Version the page's guidance targets, e.g. `React 19`                        |
 | `reviewed`    | no       | `YYYY-MM` freshness stamp for when the page was last checked                |
 

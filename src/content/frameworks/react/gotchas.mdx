@@ -1,9 +1,9 @@
 ---
 title: Gotchas
-section: Frameworks
-group: React
-library: tools
-order: 5
+section: React
+group: Foundations
+library: frameworks
+order: 11
 appliesTo: React 19
 reviewed: 2026-06
 description: Most React bugs trace to two misunderstandings — treating render as an event to react to instead of a computation, and forgetting that React tracks identity by position, not intent.
@@ -43,7 +43,7 @@ const fullName = `${firstName} ${lastName}`
 State is for facts React can't recompute: what the user typed, what the server
 said. Everything downstream of those facts is a render-time expression.
 The positive version of this rule — including what to do when the derivation
-is expensive — is [Derive, don't sync](/docs/tools/react/patterns).
+is expensive — is [Derive, don't sync](/docs/frameworks/react/patterns).
 
 </SourceTrail>
 </Pattern>
@@ -160,7 +160,7 @@ There are exactly two honest reasons to memoize:
 Neither applies? Delete the wrapper. `fullName.toUpperCase()` does not need a
 cache in front of it, and the `useCallback` around a handler nobody compares
 is noise. The full decision rule is in
-[Memoize after measuring](/docs/tools/react/patterns).
+[Memoize after measuring](/docs/frameworks/react/patterns).
 
 </SourceTrail>
 </Pattern>
@@ -199,7 +199,7 @@ non-negotiable, error not warn.
 ## Where to go next
 
 Every gotcha here has a positive twin — the habit that makes the mistake
-unrepresentable — in [Patterns](/docs/tools/react/patterns). For where async
+unrepresentable — in [Patterns](/docs/frameworks/react/patterns). For where async
 state should live in the first place (usually not in your components), see
 [Client vs. server state](/docs/app-screens/state/client-vs-server-state).
 

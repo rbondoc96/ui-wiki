@@ -1,15 +1,15 @@
 ---
 title: Patterns
-section: Frameworks
-group: React
-library: tools
-order: 10
+section: React
+group: Foundations
+library: frameworks
+order: 12
 appliesTo: React 19
 reviewed: 2026-06
 description: The React patterns worth having are picked by what they delete — effects, prop plumbing, duplicated logic, loading flags. Six habits that keep components boring.
 ---
 
-[Gotchas](/docs/tools/react/gotchas) covers what breaks; this page is the
+[Gotchas](/docs/frameworks/react/gotchas) covers what breaks; this page is the
 positive shapes. Each pattern here earns its place by what it _deletes_ from
 your components, and each has a one-line trigger — reach for it when the
 trigger fires, not by default:
@@ -106,7 +106,7 @@ a store (previous section), not a hook.
 ## Reset state with `key`
 
 The intentional use of the identity rule from
-[Gotchas](/docs/tools/react/gotchas): when new data identity should mean fresh
+[Gotchas](/docs/frameworks/react/gotchas): when new data identity should mean fresh
 UI state, say so with `key` and let React unmount and remount the subtree.
 The alternative — an effect watching the id and clearing each field by hand —
 is N resets that must be maintained in lockstep with the form, and it misses
@@ -156,7 +156,7 @@ per component, not one for the whole app. Which fallback to render inside it
 (skeleton vs. spinner, and when not to flash one) is
 [Loading & Optimistic States](/docs/patterns/loading-states); why "suspending"
 is a thrown Promise in the first place is
-[How Suspense works](/docs/tools/react/suspense).
+[How Suspense works](/docs/frameworks/react/suspense).
 
 </SourceTrail>
 </Pattern>
@@ -195,7 +195,7 @@ These patterns keep component-local state boring; the question of which state
 should be component-local at all is
 [Client vs. server state](/docs/app-screens/state/client-vs-server-state).
 For what each pattern protects you _from_, read the twins in
-[Gotchas](/docs/tools/react/gotchas).
+[Gotchas](/docs/frameworks/react/gotchas).
 
 <Callout variant="tip" title="This page, in one line">
   Store minimal facts and derive the rest, keep state low and lift late, extract

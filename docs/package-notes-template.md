@@ -15,8 +15,8 @@ an animation library.
 
 Does not belong here:
 
-- **Frameworks** — anything that owns the render loop goes in
-  `Tools → Frameworks` (React lives there as a group).
+- **Frameworks** — anything that owns the render loop goes in the
+  `Frameworks` library, where each framework owns a section.
 - **Concepts** — "how virtualization works" is a `Building Blocks` page. The
   package page links to it rather than re-explaining it.
 - **API reference** — if the answer is "read the types," don't write a page. Only

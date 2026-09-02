@@ -53,7 +53,7 @@ export interface Library {
 export const LIBRARIES: Array<Library> = [
   { label: "Building Blocks", slug: "building-blocks" },
   { label: "App & Screens", slug: "app-screens" },
-  { label: "Tools", slug: "tools" },
+  { label: "Frameworks", slug: "frameworks" },
   { label: "Packages", slug: "packages" },
 ]
 

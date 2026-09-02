@@ -14,7 +14,7 @@ Don't run `dev`/`build` unless you actually need to verify something; the checks
 ## How content and components wire together
 
 - **Content is auto-discovered.** `src/lib/docs.ts` globs `src/content/**/*.mdx` eagerly. There is **no manual registration** for a new page — drop the `.mdx` in and the sidebar, routes, search, and prev/next update. `index.mdx` maps to the folder root.
-- **Frontmatter has more fields than the README lists.** Beyond `title`/`section`/`order`/`description`: `group` (adds a third collapsible nav tier — the "tool" level, e.g. React under Frameworks), `library` (top-level nav bucket, e.g. `tools`/`app-screens`), `appliesTo`, and `reviewed` (freshness stamp). See the `Doc` type and `buildNavTree` in `src/lib/docs.ts`.
+- **Frontmatter has more fields than the README lists.** Beyond `title`/`section`/`order`/`description`: `group` (adds a third collapsible nav tier, e.g. `Foundations` under the `React` section), `library` (top-level nav bucket, e.g. `frameworks`/`app-screens`), `appliesTo`, and `reviewed` (freshness stamp). See the `Doc` type and `buildNavTree` in `src/lib/docs.ts`.
 - **Custom MDX components MUST be registered.** Add them to the `mdxComponents` map in `src/components/mdx-components.tsx` (and import at the top). Unregistered components silently render as nothing. Keep the map ABC-sorted — it matches the house style and the user's stated preference.
 - **Code fences** run through Shiki at build (`vite.config.ts`), dual light/dark theme, wrapped by the `CodeBlock` component (copy button + language label). A Shiki transformer surfaces the fence language as `data-language` on `<pre>`.
 
@@ -27,7 +27,7 @@ Don't run `dev`/`build` unless you actually need to verify something; the checks
 ## SSR + React 19 gotchas
 
 - **TanStack Start renders on the server.** Browser-only libraries (anything touching `window`/`document`/DOM measurement) must be lazily imported and run inside `useEffect`, never at module top-level or during render. Guard with a mounted/cancelled flag.
-- **StrictMode double-invokes effects in dev.** Two concurrent runs of the same effect are normal here (the wiki even documents this in `tools/react/gotchas.mdx`). Any effect that mutates shared/global state or a library's internal DOM must be safe under concurrent double-invocation — e.g. give each run a unique id rather than a stable one.
+- **StrictMode double-invokes effects in dev.** Two concurrent runs of the same effect are normal here (the wiki even documents this in `frameworks/react/gotchas.mdx`). Any effect that mutates shared/global state or a library's internal DOM must be safe under concurrent double-invocation — e.g. give each run a unique id rather than a stable one.
 
 ## The Mermaid diagram component — lessons already paid for
 
