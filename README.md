@@ -54,6 +54,10 @@ Math is written as LaTeX: `$…$` inline, `$$…$$` as its own block. KaTeX rend
 it at build time, so it costs no client JavaScript. A formula KaTeX can't parse
 **fails the build** and names the file, line, and bad command.
 
+Wrap a formula in `<Notation reads="…">` to show it beside a plain-English
+reading of itself. The math has to be a `$$…$$` block inside the component, not
+a prop, because only markdown reaches `remark-math`.
+
 ## Commands
 
 - `pnpm dev` — dev server (port 3000)

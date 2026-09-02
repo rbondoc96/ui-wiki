@@ -13,6 +13,7 @@ import { Do, DoDont, Dont } from "#/components/docs/do-dont.tsx"
 import { EventLoop } from "#/components/docs/event-loop.tsx"
 import { Term } from "#/components/docs/glossary-term.tsx"
 import { Mermaid } from "#/components/docs/mermaid.tsx"
+import { Notation } from "#/components/docs/notation.tsx"
 import { Pattern } from "#/components/docs/pattern.tsx"
 import { Platform, PlatformTabs } from "#/components/docs/platform-tabs.tsx"
 import { SourceTrail } from "#/components/docs/source-trail.tsx"
@@ -168,6 +169,7 @@ export const mdxComponents: MDXComponents = {
   Dont,
   EventLoop,
   Mermaid,
+  Notation,
   Pattern,
   Platform,
   PlatformTabs,
