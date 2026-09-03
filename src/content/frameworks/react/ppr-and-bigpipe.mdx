@@ -1,0 +1,120 @@
+---
+title: PPR and the BigPipe lineage
+section: React
+group: Server Components
+library: frameworks
+order: 32
+appliesTo: React 19.2
+reviewed: 2026-09
+description: Partial prerendering is not a Next.js invention. Facebook shipped the same trick as BigPipe in 2010. What actually changed is the primitives, and knowing which part is new tells you what to trust.
+---
+
+Partial prerendering was widely disliked when Next.js shipped it, largely on the
+grounds that it was a complicated answer to a problem nobody had. The
+complication is real. The novelty is not.
+
+This page is the history and the mechanism. For deciding **whether** to use PPR
+on a given route, the framework-agnostic comparison lives in
+[ISR and partial pre-rendering](/docs/app-screens/rendering/isr-ppr).
+
+## The old trick: BigPipe, 2010
+
+Facebook had a page that was fast in parts and slow in others, and a server that
+could not send anything until the slowest query finished. So they stopped
+treating the page as one document.
+
+The page was cut into **pagelets**. The server flushed a skeleton immediately,
+with empty containers where content would go, then kept the connection open and
+streamed each pagelet's HTML as its data resolved, wrapped in a small inline
+script that placed it in the right container.
+
+<Mermaid
+  title="BigPipe streaming pagelets into a skeleton"
+  description="The server flushes a page skeleton immediately, then streams each region's markup as its data resolves. The browser fills each container as it arrives rather than waiting for the slowest one."
+  caption="One response, many flushes. The slowest region no longer sets the page's speed."
+  chart={`
+flowchart TD
+  Req["Request"] --> Srv["Server flushes the skeleton"]
+  Srv --> P1["Header"]
+  Srv --> P2["Nav"]
+  Srv --> P3["Feed"]
+  Srv --> P4["Recommendations"]
+  P1 --> B["Browser fills each slot on arrival"]
+  P2 --> B
+  P3 --> B
+  P4 --> B
+`}
+/>
+
+The user saw a usable page in a fraction of the time, and the slowest query
+stopped setting the speed of everything else. That is the same sentence people
+now use to describe streaming SSR.
+
+## What React changed
+
+The idea survived. The way you express it did not.
+
+BigPipe was hand-rolled. You decided what a pagelet was, wrote the container,
+wrote the placement script, and kept the ordering straight yourself. It worked,
+and it was infrastructure only a large team could maintain.
+
+React replaced all of that with two things you already know:
+
+- **`<Suspense>` is the pagelet boundary**, declared in the component tree
+  instead of in a streaming framework.
+- **The stream is the transport**, so a region that is not ready becomes a
+  reference now and real content later, which is exactly what
+  [Flight rows](/docs/frameworks/react/flight-protocol) do.
+
+Nothing about the network changed. The chunked response Facebook used in 2010 is
+the chunked response React uses today. What changed is that expressing it costs
+one component instead of a subsystem.
+
+## What is actually new in PPR
+
+Here is the part that is not just BigPipe with better ergonomics, and it is
+worth being precise about because it is the whole justification.
+
+BigPipe rendered every pagelet **per request**, including the parts that never
+changed. PPR splits a route by what varies, prerenders the invariant shell **at
+build time**, and serves that shell from a cache. Only the dynamic holes are
+computed when someone asks.
+
+<Mermaid
+  title="A PPR route split into a cached shell and per-request holes"
+  description="One route produces a static shell that is prerendered at build and cached, plus dynamic regions computed per request. Both travel to the browser in a single response stream."
+  caption="The shell can come from a cache near the user. Only the holes cost a server round trip."
+  chart={`
+flowchart TD
+  R["One route"] --> S["Static shell"]
+  R --> D["Dynamic holes"]
+  S --> SC["Prerendered at build, cached at the edge"]
+  D --> DR["Computed per request"]
+  SC --> ST["Single response stream"]
+  DR --> ST
+`}
+/>
+
+So the first bytes can come from a cache close to the user while the personalized
+regions are still being computed. BigPipe could not do that, because there was
+no build-time output to cache.
+
+## Why this history is worth carrying
+
+The usual complaint is that modern web rendering is over-engineered. The more
+useful reading is that the industry has been solving one problem, "do not let
+the slowest region set the speed of the page," for fifteen years, and has
+arrived at progressively cheaper ways to express the same answer.
+
+That reframing has a practical use. When a rendering feature looks like
+ceremony, ask which old problem it is the cheap version of. If there is no old
+problem behind it, the skepticism is probably right.
+
+<Callout variant="info" title="Where the wiki covers the rest">
+
+The streaming mechanism in general, and where to place boundaries, is on
+[streaming SSR and Suspense](/docs/app-screens/rendering/streaming-ssr). The
+cost of hydrating what arrives is on
+[hydration and islands](/docs/app-screens/rendering/hydration).
+
+</Callout>
