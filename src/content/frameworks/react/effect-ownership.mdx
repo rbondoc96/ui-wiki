@@ -1,0 +1,168 @@
+---
+title: Effect ownership
+section: React
+group: Invariants
+library: frameworks
+order: 42
+appliesTo: React 19.2
+reviewed: 2026-09
+description: React cleans up what it created. Anything your effect reaches outside its own subtree is invisible to React, so it leaks unless you supply the exact undo yourself.
+---
+
+React owns the DOM nodes it made and the listeners it attached through JSX
+props. It unmounts them, removes them, and forgets them. It has no idea that
+your effect added a class to `<body>`, opened a socket, or registered a keyboard
+shortcut on `window`. Those escape the fiber, and React will never clean up what
+it does not own.
+
+<Notation reads="Any effect that escapes its own fiber must come with an undo that restores the exact prior state.">
+
+$$
+\exists\, \sigma^{-1}\ \text{such that}\ \sigma^{-1}(\sigma(s)) = s
+$$
+
+</Notation>
+
+## What "escaping" means
+
+An effect escapes when its result outlives the fiber that created it, or is
+visible outside that fiber's subtree. The usual suspects:
+
+- listeners on `window`, `document`, or any node the component did not render
+- timers and intervals
+- injected `<style>` tags and global class changes
+- subscriptions to a store, socket, or observer
+- writes to a module-level singleton or cache
+- portals mounted into `document.body`
+- hardcoded DOM `id` attributes, which collide with a second instance
+
+None of these are wrong. They are how real components do real work. They just
+come with a bill, and the bill is an inverse.
+
+## An inverse restores the exact prior state
+
+$\sigma^{-1}(\sigma(s)) = s$ is a strict claim. Apply the effect, apply the
+undo, and you are back at precisely the state you started from. Not a reasonable
+default. The value that was there.
+
+Most leaks in practice are not missing cleanups. They are cleanups that restore
+something plausible instead of something exact.
+
+<Pattern version="React 19.2" checked="2026-09">
+
+```tsx
+// ❌ Restores a guess. A modal opened inside another modal unlocks scrolling
+//    for both when the inner one closes.
+useEffect(() => {
+  document.body.style.overflow = "hidden"
+  return () => {
+    document.body.style.overflow = ""
+  }
+}, [])
+
+// ✅ Capture what was actually there and put that back.
+useEffect(() => {
+  const { body } = document
+  const previous = body.style.overflow
+  body.style.overflow = "hidden"
+  return () => {
+    body.style.overflow = previous
+  }
+}, [])
+```
+
+The fixed version is correct as long as nesting unwinds in order, which is what
+React unmounting gives you. If two unrelated components can lock scrolling and
+release in any order, the state is shared and belongs in a counter outside both.
+
+</Pattern>
+
+The other everyday non-inverse is a removal that targets a different function
+than the one that was added.
+
+<Pattern version="React 19.2" checked="2026-09">
+<SourceTrail refs={[{ id: "react-synchronizing-with-effects", note: "Establishes cleanup as the mirror of setup and why an effect must undo exactly what it did.", role: "defines" }]}>
+
+```tsx
+// ❌ Two different function objects. removeEventListener does nothing.
+useEffect(() => {
+  window.addEventListener("resize", () => setWidth(window.innerWidth))
+  return () =>
+    window.removeEventListener("resize", () => setWidth(window.innerWidth))
+}, [])
+
+// ✅ One reference, added and removed.
+useEffect(() => {
+  const onResize = () => setWidth(window.innerWidth)
+  window.addEventListener("resize", onResize)
+  return () => window.removeEventListener("resize", onResize)
+}, [])
+```
+
+</SourceTrail>
+</Pattern>
+
+## Identity is part of ownership
+
+A component that renders a hardcoded `id` is claiming a name in a namespace it
+shares with every other instance of itself. Put two on a page and the label of
+the second one points at the input of the first.
+
+<Pattern version="React 19.2" checked="2026-09">
+<SourceTrail refs={[{ id: "react-use-id", note: "Generates ids that are unique per instance and stable across the server and client renders, which a counter or random value is not.", role: "defines" }]}>
+
+```tsx
+// ✅ Unique per instance, and identical on the server and the client.
+function EmailField() {
+  const id = useId()
+  return (
+    <>
+      <label htmlFor={id}>Email</label>
+      <input id={id} type="email" />
+    </>
+  )
+}
+```
+
+</SourceTrail>
+</Pattern>
+
+A counter or `Math.random()` would also be unique, and would break
+[hydration](/docs/frameworks/react/description-vs-reality) because the server
+and the client would not agree on the number. `useId` exists because those two
+requirements collide.
+
+## StrictMode already tests this for free
+
+The dev-only double invoke runs setup, cleanup, setup on every effect. That is
+exactly the $\sigma^{-1}(\sigma(s)) = s$ check, executed on every mount, at no
+cost to you. Two sockets in dev means the cleanup is not an inverse.
+
+The reflex is to add a `didInit` ref to stop the second run. That hides the
+result of the test instead of fixing what it found. The
+[gotchas page](/docs/frameworks/react/gotchas) covers this at length.
+
+## Where the formula overstates it
+
+<Callout variant="warning" title="Not every effect has an inverse">
+
+Some effects genuinely cannot be undone. An analytics event that was sent, an
+email that went out, a payment that cleared. There is no $\sigma^{-1}$, and
+demanding one would forbid the effect entirely.
+
+The real requirement for those is **idempotence**: make the effect safe to run
+more than once, usually with a request key the server deduplicates on, so a
+StrictMode remount or a retry costs nothing.
+
+Read the invariant as covering effects on shared mutable state, which is where
+leaks actually come from. Irreversible side effects are a different problem with
+a different fix.
+
+</Callout>
+
+<Callout variant="tip" title="The check, in one question">
+
+List everything this effect touches that the component did not render. For each
+one, does the cleanup put it back exactly as it was?
+
+</Callout>
