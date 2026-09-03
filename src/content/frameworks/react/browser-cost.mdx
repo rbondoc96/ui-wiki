@@ -1,0 +1,138 @@
+---
+title: Browser cost functions
+section: React
+group: Invariants
+library: frameworks
+order: 44
+appliesTo: React 19.2
+reviewed: 2026-09
+description: Once React commits, its own cost stops mattering and the browser's takes over. Layout, engine deoptimization, and main-thread occupancy each grow with something different, and only one of them is usually your problem.
+---
+
+Most React performance work is spent on the part of the frame React controls,
+which is often the cheap part. Reconciliation finishes, the commit applies, and
+then the browser does the expensive work: recomputing layout, painting,
+compositing, and running whatever else is queued on the main thread.
+
+<Notation reads="After commit, the costs that matter are the browser's, and each one grows with a different thing.">
+
+$$
+\begin{align*}
+\text{layout thrashing} &\propto |\text{dirty subtree}| \\
+\text{IC misses} &\propto \text{polymorphism} \\
+\text{long tasks} &\propto \text{main-thread work}
+\end{align*}
+$$
+
+</Notation>
+
+$\propto$ means "grows in step with," and deliberately claims nothing about the
+constant. That matters here more than usual, because the constants are wildly
+different between these three.
+
+## Layout thrashing
+
+The browser batches style and layout work until something forces it to catch up.
+Reading a geometric property is what forces it. Read, write, read again, and
+the browser recomputes layout in between every pair.
+
+The reads that force layout are the ones that describe geometry:
+`offsetWidth`, `offsetTop`, `clientHeight`, `scrollTop`, `getBoundingClientRect`,
+`getComputedStyle`, and `focus`.
+
+<Pattern version="React 19.2" checked="2026-09">
+<SourceTrail refs={[{ id: "web-dev-layout-thrashing", note: "Names the layout-forcing properties and the read-then-write batching fix.", role: "adapted-from" }]}>
+
+```ts
+// ❌ N forced layouts. Each read comes after a write that invalidated layout.
+for (const el of items) {
+  el.style.height = `${el.getBoundingClientRect().width * 0.5}px`
+}
+
+// ✅ One layout. All reads, then all writes.
+const widths = items.map((el) => el.getBoundingClientRect().width)
+items.forEach((el, index) => {
+  el.style.height = `${widths[index] * 0.5}px`
+})
+```
+
+</SourceTrail>
+</Pattern>
+
+In React this usually appears inside a `useLayoutEffect` that measures children
+and sizes them. The subtree size sets how much work each recomputation is; the
+number of read-write alternations sets how many times you pay it. The second
+number is the one that ruins a frame.
+
+## Inline cache misses
+
+JavaScript engines learn the shape of the objects flowing through a function and
+compile a fast path for it. Feed the same function objects with different
+shapes and the fast path is discarded for a slower general one.
+
+<SourceTrail refs={[{ id: "bynens-shapes-and-inline-caches", note: "Explains shapes, transition chains, and why a function that sees several object layouts loses its fast path.", role: "defines" }]}>
+
+The practical version: build objects with a consistent set of keys, in a
+consistent order, and avoid adding properties after creation.
+
+</SourceTrail>
+
+<Callout variant="warning" title="This one is rarely your bottleneck">
+
+The formula puts all three costs side by side, which reads as though they matter
+equally. In application code they do not.
+
+Inline caches matter in code that runs thousands of times per frame: a virtual
+list's row mapper, a physics step, a parser. A component that renders forty
+nodes will never notice. If you are reshaping props objects to help the engine
+before you have profiled, you are optimizing the smallest of the three.
+
+</Callout>
+
+## Long tasks
+
+Any task that occupies the main thread for more than 50ms blocks input handling
+for its whole duration, and that is what a user experiences as jank. This is the
+cost that most often shows up in field data as a bad INP score.
+
+<SourceTrail refs={[{ id: "web-dev-long-tasks", note: "Defines the 50ms threshold and the yielding strategies for splitting work across tasks.", role: "defines" }]}>
+
+React's time slicing helps here, but only between units of work. It yields
+roughly every 5ms **between fibers**, so a tree of many small components stays
+interruptible while one enormous component's render is a single indivisible
+long task. Splitting that component is the fix; a transition is not.
+
+</SourceTrail>
+
+## Measure before you memoize
+
+`memo`, `useMemo`, and `useCallback` are not free. Each one adds a comparison on
+every render and holds the previous value alive. Wrapping a component that
+renders four `<span>`s costs more than it saves.
+
+The order that actually pays off:
+
+1. Profile a real interaction and find where the frame goes.
+2. If it is in the browser, fix the layout reads or split the long task.
+3. If it is in React, cut the work: render fewer nodes, move state down, or
+   split the component.
+4. Only then reach for memoization, and confirm the profile changed.
+
+<Callout variant="warning" title="Proportionality hides the constants">
+
+$\propto$ tells you the shape of the growth, not the size of the bill. A ten
+node subtree that forces layout a hundred times costs far more than a thousand
+node subtree that forces it once, even though the first has the smaller
+$|\text{dirty subtree}|$.
+
+Use these relationships to know what to look for. Use a profile to know what to
+fix.
+
+</Callout>
+
+<Callout variant="tip" title="The check, in one question">
+
+Is the work you are about to optimize inside React's render, or in what the
+browser does after commit? Answer that with a profile before changing anything.
+
+</Callout>
