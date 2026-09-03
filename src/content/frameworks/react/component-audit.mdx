@@ -1,0 +1,118 @@
+---
+title: Auditing a component
+section: React
+group: Invariants
+library: frameworks
+order: 45
+appliesTo: React 19.2
+reviewed: 2026-09
+description: Five questions that turn the invariants into a review pass. Most components that break in production read perfectly well, which is why reading them is not the test.
+---
+
+The five invariants describe how React actually behaves. This page turns them
+into something you can run against a component in a few minutes, before it ships
+or during review.
+
+The point of a checklist rather than careful reading is that the failures here
+are invisible at the call site. A component that assumes one `window`, or
+attaches a listener it removes from the wrong object, looks textbook. It works
+on the page you wrote it for. It breaks on someone else's.
+
+| Invariant | What it constrains |
+| --- | --- |
+| [Environment ownership](/docs/frameworks/react/environment-ownership) | What render is allowed to touch |
+| [Description versus reality](/docs/frameworks/react/description-vs-reality) | What the DOM may contain after commit |
+| [Effect ownership](/docs/frameworks/react/effect-ownership) | What an effect must undo |
+| [The lane lattice](/docs/frameworks/react/lane-lattice) | What priority an update gets |
+| [Browser cost functions](/docs/frameworks/react/browser-cost) | What actually costs a frame |
+
+## Does any render path touch browser APIs?
+
+Render is the component body, default parameters, lazy `useState` and
+`useReducer` initializers, and `useMemo` callbacks. Look for `window`,
+`document`, `localStorage`, `navigator`, `matchMedia`, and anything that reads
+them indirectly through a helper.
+
+A `typeof window !== "undefined"` guard counts as a hit, not a pass. It converts
+a crash into a hydration mismatch.
+
+## Does every escaping side effect have an explicit inverse?
+
+List everything the effects touch that this component did not render. For each
+one, check that the cleanup restores the value that was actually there, not a
+plausible default, and that it targets the same object and the same function
+reference the setup used.
+
+If an effect cannot be undone, an analytics call or a payment, the requirement
+changes to making it safe to run twice.
+
+## Are non-urgent updates going through a transition?
+
+Trace each `setState` back to what triggered it. Anything on the path between a
+keystroke and expensive work needs `startTransition` or `useDeferredValue`
+between them.
+
+Check the reverse too. A controlled input's own value must not be inside a
+transition, or the field goes laggy.
+
+## Is the cost you are optimizing actually React's?
+
+Open a profile of the real interaction before touching anything. If the time is
+in layout, paint, or a single long task, no amount of `memo` will move it.
+
+Memoization that was added without a profile is worth removing, not keeping. It
+costs a comparison per render and buys nothing you have measured.
+
+## Can it render twice, in a portal, and inside `<Activity>`?
+
+Three separate stress tests, and each one catches a different assumption.
+
+**Twice on one page.** Catches hardcoded ids, module-level mutable state, and
+any assumption that this component is a singleton.
+
+**Inside a portal.** Catches every reference to the global `window` or
+`document`. A portal can target another document entirely, and the globals still
+resolve, just to the wrong place.
+
+**Inside `<Activity>`.** The hardest of the three. A hidden `<Activity>` keeps
+state alive while tearing down effects, then sets them back up on reveal. A
+component that assumes state and effects have the same lifetime will break here
+and nowhere else.
+
+<SourceTrail refs={[{ id: "react-activity", note: "Specifies that a hidden Activity preserves state while unmounting effects, which is what makes it a stricter test than unmounting.", role: "defines" }]}>
+
+`<Activity>` is worth reading up on for this reason alone, even if you never
+render one deliberately.
+
+</SourceTrail>
+
+## A worked example: the ThemeProvider that passed review
+
+<SourceTrail refs={[{ id: "infinite-renders-bulletproof-components", note: "The five invariants, their formulas, this checklist, and the ThemeProvider incident are adapted from this post; the pushback on each formula and the code here are this wiki's.", role: "adapted-from" }]}>
+
+A production `ThemeProvider` did everything right on paper. It registered its
+keyboard shortcut in a `useEffect`, removed the listener on cleanup, and used
+`useId` for its ids. It had been reviewed and it had shipped.
+
+Then someone opened part of the app in a pop-out window, and the shortcut
+silently stopped working. Two senior engineers spent a day on it.
+
+The listener was attached to `window`. Inside the pop-out, the component's DOM
+lived in a second document, but the global `window` still resolved to the
+original one. So the listener was registered on a window nobody was typing into,
+and the cleanup removed it from that same wrong window. Both calls succeeded.
+There is no error for listening to the wrong object.
+
+Two invariants broke at once. [Environment
+ownership](/docs/frameworks/react/environment-ownership), because the component
+assumed there was one `window`. [Effect
+ownership](/docs/frameworks/react/effect-ownership), because the effect's owner
+was the wrong object, so its inverse was aimed at the wrong object too.
+
+The fix was one expression: ask a node which window owns it, via
+`ref.current.ownerDocument.defaultView`.
+
+</SourceTrail>
+
+What makes this the right closing example is that no amount of reading the file
+would have caught it. Question 5 would have, in about ten seconds.
