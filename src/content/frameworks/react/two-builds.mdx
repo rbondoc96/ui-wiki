@@ -1,0 +1,115 @@
+---
+title: One source, two builds
+section: React
+group: Server Components
+library: frameworks
+order: 30
+appliesTo: React 19.2
+reviewed: 2026-09
+description: Under Server Components your app is compiled twice from the same files, and a module marked "use client" comes out as a real component in one build and a stub reference in the other. Almost every confusing RSC error follows from that.
+---
+
+A React app is one tree. Under Server Components it is compiled from two
+different perspectives, and the same file can come out as two different things.
+Once you can see both builds, the RSC error messages stop being cryptic.
+
+<Mermaid
+  title="One source file compiled into two builds"
+  description="The same application code is compiled twice. The server build keeps server components and replaces client modules with reference stubs, producing a Flight stream. The client build compiles the real client components and emits a manifest mapping references back to modules."
+  caption="Counter is a stub on the server and the real component on the client. Same file."
+  chart={`
+flowchart TD
+  SRC["App code: Page (server) + Counter (client)"]
+  SRC --> SB["Server build"]
+  SRC --> CB["Client build"]
+  SB --> S1["react-server condition"]
+  S1 --> S2["Page: kept as-is"]
+  S2 --> S3["Counter: stub, a client reference"]
+  S3 --> S4["Output: Flight stream"]
+  CB --> C1["normal React runtime"]
+  C1 --> C2["Counter: the real component"]
+  C2 --> C3["hooks and browser APIs work"]
+  C3 --> C4["Output: bundle + manifest"]
+`}
+/>
+
+## The server build
+
+The bundler resolves the `react-server` export condition, which gives it a
+build of React that has no `useState`, no `useEffect`, and no event system.
+
+Server Components are included normally. When the bundler reaches a module whose
+first line is `"use client"`, it does not compile that module. It replaces the
+whole thing with a **stub**: an object that says "there is a component here, its
+id is X." Your `useState` calls, your handlers, and your imported chart library
+are not in this build at all.
+
+That is why a Server Component importing browser-only code fails at build time
+rather than at request time, and it is the build-time half of
+[environment ownership](/docs/frameworks/react/environment-ownership).
+
+## The client build
+
+The client build compiles the real client components against the ordinary React
+runtime, and emits a **manifest**: a map from each reference id to the module
+and chunk that actually contains it.
+
+The stream and the manifest are two halves of one mechanism. The server emits
+"component X goes here," the client looks up X and loads it. How that reference
+travels is covered on
+[the Flight protocol](/docs/frameworks/react/flight-protocol).
+
+## "use client" marks a boundary, not a file
+
+This is the part that trips people, because the directive reads like a file
+annotation and behaves like a graph cut.
+
+Everything a `"use client"` module imports, and everything those import, joins
+the client bundle. Marking one component as client can pull a dependency tree
+into the browser that you never intended to ship.
+
+The boundary is also not a horizontal line across the tree. Client and server
+components interleave.
+
+<Mermaid
+  title="Server and client components interleaved in one tree"
+  description="A server component can render a client component. A client component can only contain server components that were passed to it as children or props, because it cannot import them."
+  caption="The boundary cuts through the tree, not across it."
+  chart={`
+flowchart TD
+  Page["Page, server"] --> Layout["Layout, server"]
+  Layout --> Sidebar["Sidebar, client"]
+  Layout --> Feed["Feed, server"]
+  Sidebar --> Nav["Nav, server, passed as children"]
+  Feed --> Like["LikeButton, client"]
+`}
+/>
+
+The rule underneath the picture is one-directional:
+
+- A Server Component can **import and render** a Client Component.
+- A Client Component cannot import a Server Component. It can only render one
+  that was handed to it as `children` or a prop.
+
+The reason is mechanical rather than philosophical. Importing means being in the
+same build, and a Server Component does not exist in the client build. Passing
+it as `children` means the server already rendered it and sent the result, so
+the client only has to place it.
+
+## "Why can't the server just run the client component?"
+
+Two answers, and the second one is the real one.
+
+**It could not do anything useful.** Effects never fire, event handlers never
+attach, and browser APIs are missing, so the interactive part would be inert.
+
+**The code is not there.** In the server build that module was replaced with a
+stub. There is nothing to execute. This is not a policy React enforces at
+runtime; it is a consequence of how the two builds were produced.
+
+<SourceTrail refs={[{ id: "react-use-client", note: "Specifies the directive, the boundary semantics, and the one-directional import rule.", role: "defines" }, { id: "react-server-components", note: "The wider model these two builds implement.", role: "supports" }]}>
+
+If you read one thing after this page, read the `"use client"` reference. The
+import rules are short and the edge cases are all in there.
+
+</SourceTrail>
