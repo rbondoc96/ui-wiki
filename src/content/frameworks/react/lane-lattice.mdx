@@ -1,0 +1,156 @@
+---
+title: The lane lattice
+section: React
+group: Invariants
+library: frameworks
+order: 43
+appliesTo: React 19.2
+reviewed: 2026-09
+description: React sorts every update into one of 31 priority lanes and decides what to interrupt based on that. You never set a lane directly, but every choice you make about where an update starts picks one for you.
+---
+
+React does not treat all updates as equal. A keystroke and a background refetch
+both produce new state, and React will happily abandon half-finished work on the
+second to get the first onto the screen. What decides that is the update's
+**lane**.
+
+<Notation reads="A lane is one of the 31 on-or-off priority bits.">
+
+$$
+\ell \in \{0,1\}^{31}
+$$
+
+</Notation>
+
+## Why a bitmask, and why 31
+
+Each lane is one bit. An update carries a mask with its lane set, and a fiber
+carries a mask of the lanes with pending work under it. That representation buys
+two things ordinary numbers would not.
+
+**Sets combine with one instruction.** Union is `|`, intersection is `&`.
+"Does this subtree have any work at a priority I care about right now" is a
+single AND against zero, not a walk.
+
+**Whole subtrees get skipped.** React bubbles pending lanes up to the root, so a
+render at one priority can look at a node's mask, see no overlap, and skip
+everything below it without visiting a single child.
+
+The count is 31 rather than 32 so the mask stays inside the range engines keep
+as an unboxed small integer, which is what makes those bitwise operations free.
+
+## You never write a lane
+
+There is no API that takes a priority. React infers the lane from **how the
+update was triggered**.
+
+| How the update starts | Rough priority |
+| --- | --- |
+| Inside a discrete event like `click` or `keydown` | Highest, synchronous |
+| Inside `startTransition` or `useTransition` | Transition, interruptible |
+| Downstream of `useDeferredValue` | Below the update that caused it |
+| Everything else, including timers and responses | Default |
+
+So the lane is a consequence of where you put the `setState` call. That is the
+whole practical content of this invariant: **the structure of your code assigns
+priorities whether or not you thought about it.**
+
+## The two failures
+
+Getting this wrong does not throw. It changes how the UI feels, in a way that is
+hard to trace back to a line of code.
+
+**Urgent work stuck behind slow work.** A search input that filters ten thousand
+rows on every keystroke. The filter render is on the same discrete lane as the
+keystroke, so the character does not appear until the list finishes.
+
+<Pattern version="React 19.2" checked="2026-09">
+<SourceTrail refs={[{ id: "react-use-deferred-value", note: "Defines the deferred re-render at lower priority and the memo requirement that makes the skip actually happen.", role: "defines" }]}>
+
+```tsx
+function Search() {
+  const [query, setQuery] = useState("")
+  const deferredQuery = useDeferredValue(query)
+
+  return (
+    <>
+      {/* Urgent: the input must show the character immediately. */}
+      <input onChange={(e) => setQuery(e.target.value)} value={query} />
+      {/* Lower lane: React can abandon this render for the next keystroke. */}
+      <Results query={deferredQuery} />
+    </>
+  )
+}
+
+// Without memo, Results re-renders at both priorities and nothing is saved.
+const Results = memo(function Results({ query }: { query: string }) {
+  return <List items={filterRows(query)} />
+})
+```
+
+</SourceTrail>
+</Pattern>
+
+**Urgent work demoted by mistake.** The mirror image, and the more confusing
+one. Wrapping a controlled input's own `setState` in `startTransition` makes the
+field itself laggy, because the character on screen is now interruptible work.
+
+<Pattern version="React 19.2" checked="2026-09">
+<SourceTrail refs={[{ id: "react-start-transition", note: "Specifies which updates belong in a transition and that the value driving a controlled input is not one of them.", role: "defines" }]}>
+
+```tsx
+// ❌ The typed character is now abandonable. The input feels broken.
+function onChange(event: ChangeEvent<HTMLInputElement>) {
+  startTransition(() => setQuery(event.target.value))
+}
+
+// ✅ Keep the input urgent, put the expensive consequence in the transition.
+function onChange(event: ChangeEvent<HTMLInputElement>) {
+  setQuery(event.target.value)
+  startTransition(() => setResultsQuery(event.target.value))
+}
+```
+
+</SourceTrail>
+</Pattern>
+
+<Callout variant="warning" title="Transitions do not make anything faster">
+
+A transition changes when work runs and whether it can be thrown away. It does
+not reduce the work. If filtering takes 300ms, it still takes 300ms; the input
+just stays responsive while it happens, and the result arrives no sooner.
+
+If the result itself is too slow, the fix is less work, not a different lane.
+
+</Callout>
+
+## Where the formula overstates it
+
+<Callout variant="warning" title="Lanes are an implementation detail">
+
+There is no public API for lanes, no stability guarantee, and no version promise
+about the layout. The bit count and the assignment rules have changed across
+React versions and can change again.
+
+What is stable is the **contract**: `startTransition` marks work as
+interruptible and lower priority than user input, `useDeferredValue` lets a
+value lag behind at lower priority. Build on those. Reasoning about specific bit
+values, or writing code that depends on a particular lane ordering, is building
+on something React is free to move.
+
+</Callout>
+
+<SourceTrail refs={[{ id: "react-lane-source", note: "The lane constants, the bubbling of childLanes, and the priority-to-lane mapping, if you want to read the real thing.", role: "further-reading" }]}>
+
+The definitions live in `ReactFiberLane.js` in the reconciler, and they are
+readable. It is a good file to skim once.
+
+</SourceTrail>
+
+<Callout variant="tip" title="The check, in one question">
+
+For every `setState` in this component, is the work it triggers something the
+user is waiting to see right now? If not, it belongs in a transition or behind a
+deferred value.
+
+</Callout>
