@@ -1,0 +1,118 @@
+---
+title: The Flight protocol
+section: React
+group: Server Components
+library: frameworks
+order: 31
+appliesTo: React 19.2
+reviewed: 2026-09
+description: Flight is the wire format Server Components render into. It is a stream of numbered rows, not HTML, and the $L1 references inside it are what let a slow part of the page arrive after the fast part.
+---
+
+Server Components do not send HTML. They render into **Flight**, React's own
+wire format, and what travels is a stream of numbered rows describing a tree.
+HTML may also be produced, by a separate server render of that description, but
+the description is the thing Server Components actually output.
+
+The reason to know this is that Flight explains the shape of the whole system:
+why a slow component does not block a fast one, why client components appear as
+ids, and what `$L1` means when you see it in a network tab.
+
+## A stream of rows, not a document
+
+<Mermaid
+  title="Flight rows arriving over time"
+  description="The server emits a root row containing references to work that has not finished. The client starts building immediately, leaving holes. Later rows resolve those references and the client fills the holes in place."
+  caption="The client never waits for the whole payload. It fills holes as rows land."
+  chart={`
+sequenceDiagram
+  participant S as Server
+  participant N as Stream
+  participant C as Client
+  S->>N: row 0: tree with $L1 holes
+  N->>C: row 0
+  C->>C: build known parts
+  S->>N: row 1: client module ref
+  N->>C: row 1
+  C->>C: manifest lookup, load chunk
+  S->>N: row 2: subtree resolved
+  N->>C: row 2
+  C->>C: fill the hole
+`}
+/>
+
+Each row has a number and a payload. Later rows refer to earlier ones. The
+client consumes them as they arrive rather than waiting for the end, which is
+what makes streaming possible at all.
+
+## What `$L1` means
+
+Inside a row, strings beginning with `$` are not text. They are the protocol's
+escape mechanism, and `$L1` is the one worth memorizing: **"the value here is
+whatever row 1 turns out to be."** L is for lazy.
+
+Roughly, a payload looks like this:
+
+```text
+0:["$","div",null,{"children":["$","$L1",null,{}]}]
+1:I["./src/Counter.tsx",["chunk-a4f.js"],"default"]
+2:["$","span",null,{"children":"1,204 likes"}]
+```
+
+Row 0 is the tree, with a hole where row 1 will go. Row 1 is a client module
+reference: a path, the chunks it needs, and the export name. Row 2 is a subtree
+that finished later.
+
+<Callout variant="warning" title="This format is internal and unstable">
+
+The example above is simplified to show the idea. The real encoding has more
+prefixes and has changed between React versions. Read it to debug a stream, not
+to write a parser against.
+
+</Callout>
+
+## How the client resolves a reference
+
+The reference carries an id, not code. Turning it back into a component is the
+job of the **client manifest** emitted by
+[the client build](/docs/frameworks/react/two-builds).
+
+1. The Flight consumer reads a row and finds `$L1`.
+2. It looks up id 1 in the manifest, which names a module and its chunks.
+3. It loads those chunks.
+4. The lazy node resolves and that part of the tree renders.
+
+This is the exact point where the two builds meet. The server knew there was a
+component and refused to look inside it; the client knows how to find it and
+has never seen the server's version.
+
+## Why suspending does not block the payload
+
+When a Server Component suspends, the server does not stall the response. It
+emits a reference for that subtree immediately and keeps going, then writes the
+real row whenever the data resolves.
+
+That is the whole streaming story in one sentence, and it is why a
+`<Suspense>` boundary is the unit of "this part may arrive later." The boundary
+tells React where a hole is allowed to exist.
+
+The client-side half of suspending, including why it works by throwing, is on
+[how Suspense works](/docs/frameworks/react/suspense).
+
+## Secrets do not stop at the boundary
+
+Everything a Server Component passes as a prop to a Client Component is
+**serialized into the stream**, which means it is sent to the browser and
+readable in a network tab.
+
+An API key, a full user record, or a database row passed "just to be
+convenient" is now public. The boundary is a serialization point, not a security
+one. Pass the fields the client needs and nothing else.
+
+<SourceTrail refs={[{ id: "react-server-components", note: "The model these rows encode, including what may cross the boundary as props.", role: "defines" }, { id: "react-use-client", note: "Where the reference rows come from and how the manifest resolves them.", role: "supports" }]}>
+
+There is also a browser playground, `rscexplorer.dev`, that runs both halves in
+the page so you can step through a real stream row by row. It is the fastest way
+to make this concrete.
+
+</SourceTrail>
