@@ -9,6 +9,8 @@ reviewed: 2026-09
 description: Partial prerendering is not a Next.js invention. Facebook shipped the same trick as BigPipe in 2010. What actually changed is the primitives, and knowing which part is new tells you what to trust.
 ---
 
+import { PprTimeline } from "#/components/docs/ppr-examples.tsx"
+
 Partial prerendering was widely disliked when Next.js shipped it, largely on the
 grounds that it was a complicated answer to a problem nobody had. The
 complication is real. The novelty is not.
@@ -98,6 +100,8 @@ flowchart TD
 So the first bytes can come from a cache close to the user while the personalized
 regions are still being computed. BigPipe could not do that, because there was
 no build-time output to cache.
+
+<PprTimeline />
 
 ## Why this history is worth carrying
 
