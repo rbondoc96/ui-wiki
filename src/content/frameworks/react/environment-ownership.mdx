@@ -1,0 +1,153 @@
+---
+title: Environment ownership
+section: React
+group: Invariants
+library: frameworks
+order: 40
+appliesTo: React 19.2
+reviewed: 2026-09
+description: Render runs on the server, in the browser, twice in dev, and sometimes inside a document your window global does not point at. It is only correct if everything it touches exists in all of them.
+---
+
+Render is not a browser function that happens to also run on a server. It is a
+function that runs in several environments, and it is correct only in the
+environments where everything it touches is defined.
+
+<Notation reads="Everything render is allowed to touch has to exist on the server too.">
+
+$$
+\mathrm{dom}(f_{\mathrm{render}}) \subseteq \mathrm{ServerEnv}
+$$
+
+</Notation>
+
+## Why this is a domain error, not a style problem
+
+$\mathrm{dom}(f)$ is the set of inputs a function is defined for.
+`localStorage.getItem` is defined in a browser and undefined on a server.
+Calling it during render is not a lint warning you can suppress. It is calling a
+function outside its domain, and the only reason it ever worked is that you
+happened to run it somewhere the function existed.
+
+That framing matters because of how the bug arrives. Nothing complains at the
+call site. You find out when the page 500s in production, or when someone pulls
+the component into a server-rendered route four months later without reading it.
+The component did not change. The environment did.
+
+## What counts as "render"
+
+Everything React may call while computing the tree:
+
+- the component body
+- default parameter values
+- `useState` and `useReducer` lazy initializers
+- `useMemo` callbacks
+- anything those call
+
+Effects and event handlers are not render. `useEffect` and `useLayoutEffect`
+never run on the server, and a click handler cannot fire there, so browser APIs
+are safe inside them.
+
+<Pattern version="React 19.2" checked="2026-09">
+<SourceTrail refs={[{ id: "react-use-sync-external-store", note: "Defines getServerSnapshot as the server-and-hydration answer, which is what keeps the read out of render's domain problem.", role: "defines" }]}>
+
+```tsx
+// ❌ Runs during render. On the server, `localStorage` is not defined.
+function Sidebar() {
+  const collapsed = localStorage.getItem("sidebar") === "collapsed"
+  return <nav data-collapsed={collapsed} />
+}
+
+// ✅ The subscription defines its own server answer, so render stays total.
+function Sidebar() {
+  const collapsed = useSyncExternalStore(
+    subscribeToStorage,
+    () => localStorage.getItem("sidebar") === "collapsed",
+    () => false // getServerSnapshot: what the server and hydration both see
+  )
+  return <nav data-collapsed={collapsed} />
+}
+```
+
+</SourceTrail>
+</Pattern>
+
+## Three ways out, worst last
+
+**`useSyncExternalStore` with a `getServerSnapshot`.** The best option when the
+value can change. You are forced to name what the server sees, and React uses
+that same value for the hydration render, so the two agree by construction.
+
+**An effect that sets state.** Fine when the value is read once. Costs an extra
+render and shows the server's value for one frame, so anything visual flashes.
+
+**A `typeof window !== "undefined"` branch in render.** This is the one to
+avoid. It does stop the crash, and it does so by making the first client render
+disagree with the server render, which trades a loud error for
+[a hydration mismatch](/docs/frameworks/react/description-vs-reality). You have
+not fixed the domain problem. You have moved it somewhere quieter.
+
+## `window` is not one thing
+
+The server is the obvious second environment. It is not the only one, and the
+others break far more interesting components.
+
+A component rendered through a portal into a pop-out window, an iframe, or an
+embedded canvas is running inside a **different document**, with a different
+`window`. The global `window` still resolves. It just points somewhere the
+component is not.
+
+<Pattern version="React 19.2" checked="2026-09">
+<SourceTrail refs={[{ id: "mdn-node-owner-document", note: "ownerDocument is the document a node actually belongs to, which is what makes the correct window reachable from a ref.", role: "defines" }, { id: "mdn-document-default-view", note: "defaultView is the window associated with a document, the other half of the lookup.", role: "supports" }]}>
+
+```tsx
+// ❌ Assumes there is one window and that this node lives in it.
+useEffect(() => {
+  window.addEventListener("keydown", onKey)
+  return () => window.removeEventListener("keydown", onKey)
+}, [onKey])
+
+// ✅ Ask the node which window owns it.
+useEffect(() => {
+  const view = ref.current?.ownerDocument.defaultView
+  if (!view) return
+  view.addEventListener("keydown", onKey)
+  return () => view.removeEventListener("keydown", onKey)
+}, [onKey])
+```
+
+</SourceTrail>
+</Pattern>
+
+The same reasoning covers React Native, where there is no `document` at all, and
+tests under jsdom, where there is one but it is not the one you think.
+
+## Where the build enforces this for you
+
+Under React Server Components the bundler catches part of this. The server build
+resolves the `react-server` export condition, and a module marked `"use client"`
+is replaced with a stub, so a Server Component that imports browser code fails at
+build time rather than at request time.
+
+<Callout variant="warning" title="That protection is narrower than it sounds">
+
+The build-time check only guards the RSC boundary. A **client** component still
+gets server-rendered during SSR, with no stub and no build error. Every rule on
+this page applies to it exactly as written.
+
+</Callout>
+
+<SourceTrail refs={[{ id: "react-use-client", note: "Specifies the directive and the two-build split that turns a client module into a reference on the server.", role: "supports" }, { id: "react-server-components", note: "Background on why the server build is a separate resolution of the same tree.", role: "further-reading" }]}>
+
+The mechanism is worth knowing in full, because it explains why the RSC error
+messages read the way they do.
+
+</SourceTrail>
+
+<Callout variant="tip" title="The check, in one question">
+
+Could this component be rendered on a server, or inside a document that isn't
+the main one, without changing a line? If not, name which call assumes
+otherwise.
+
+</Callout>
