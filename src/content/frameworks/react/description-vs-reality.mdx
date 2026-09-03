@@ -34,15 +34,15 @@ into the HTML the browser receives.
   description="A description produced on the server becomes HTML, which the browser paints. Hydration attaches React to those existing nodes and asserts the description still matches them."
   caption="Hydration is the moment React claims the painted nodes as its own."
   chart={`
-flowchart LR
+flowchart TD
   D["Description (D)"] --> S["Server render"]
   S --> HTML["HTML on the wire"]
   HTML --> P["Browser paints (H)"]
   P --> HY["Hydration"]
-  D --> HY
+  D -.->|asserted against| HY
   HY --> M{"D matches H?"}
   M -->|yes| OK["React adopts the nodes"]
-  M -->|no| DISCARD["Discard and client render"]
+  M -->|no| DISCARD["Discard, client render"]
 `}
 />
 
