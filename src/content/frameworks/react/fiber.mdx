@@ -1,0 +1,134 @@
+---
+title: Fiber
+section: React
+group: Internals
+library: frameworks
+order: 20
+appliesTo: React 19.2
+reviewed: 2026-09
+description: A fiber is both a node in a linked list and one unit of work. That single design choice is why React can pause a render halfway, throw it away, and start over without the screen ever flickering.
+---
+
+The usual one-line answer, "Fiber is the reconciliation algorithm introduced in
+React 16 that breaks rendering into units of work," is true and explains
+nothing. The part worth knowing is _why_ the data structure has the shape it
+does, because every concurrent feature falls out of it.
+
+## Why it is a linked list, not a tree walk
+
+A recursive walk over a component tree cannot be paused. Once you are twelve
+frames deep in the call stack, the only way out is to finish or to throw away
+everything.
+
+So React does not recurse. Every component becomes a **fiber** node with three
+pointers, and React walks them in a loop it can exit at any time.
+
+<Mermaid
+  title="Fiber pointers on a small tree"
+  description="Each fiber points to its first child, its next sibling, and its parent. Together those three pointers let React walk the whole tree with a loop instead of recursion."
+  caption="Three pointers replace the call stack. child goes down, sibling goes across, return goes back up."
+  chart={`
+flowchart TD
+  Form["Form"]
+  subgraph row1[" "]
+    direction LR
+    Input["Input"] -.->|sibling| Label["Label"]
+  end
+  subgraph row2[" "]
+    direction LR
+    Span["span"] -.->|sibling| A["a"]
+  end
+  Form -->|child| Input
+  Label -->|child| Span
+  Input -->|return| Form
+  Span -->|return| Label
+`}
+/>
+
+`child` goes down to the first child. `sibling` goes across to the next one.
+`return` goes back up to the parent. That is enough to reach every node, and
+because the position in the walk is just "which fiber am I on," React can stop
+after any node and resume from that exact fiber later.
+
+The stack became data. That is the whole trick.
+
+## Two trees, and a pointer swap
+
+React keeps two versions of the tree at once. **current** is what the browser
+has painted. **workInProgress** is the one being built. Each fiber's
+`alternate` pointer links it to its counterpart in the other tree.
+
+<Mermaid
+  title="Double buffering with the alternate pointer"
+  description="The current tree stays on screen while a work-in-progress tree is built beside it. Each fiber links to its counterpart through the alternate pointer, and committing swaps which tree is current."
+  caption="Nothing on screen changes until the root pointer flips."
+  chart={`
+flowchart TD
+  subgraph WIP["workInProgress, being built"]
+    W1["App"] --> W2["Counter shows 1"]
+  end
+  subgraph CUR["current, on screen"]
+    C1["App"] --> C2["Counter shows 0"]
+  end
+  C1 <-.->|alternate| W1
+  C2 <-.->|alternate| W2
+`}
+/>
+
+This is double buffering, the same idea a game engine uses to avoid tearing.
+The screen keeps showing a complete, consistent tree the entire time React is
+building a different one. If a higher priority update arrives mid-render, React
+abandons the work-in-progress tree and starts a fresh one. Nothing was painted,
+so nothing has to be undone.
+
+<Callout variant="info" title="Why your component's state survives that">
+
+State does not live in the fiber being thrown away. It lives on the `alternate`
+pair, and React copies it forward when it builds the new work-in-progress
+fiber. Abandoning a render loses the computed output, not the state.
+
+</Callout>
+
+## Render phase and commit phase
+
+The walk splits into two phases with completely different rules.
+
+**The render phase is pure and interruptible.** React calls your components,
+builds work-in-progress fibers, and marks each one with flags describing what
+the commit will need to do: placement, update, deletion, effects to fire. Since
+nothing here touches the DOM, React is free to pause, resume, or discard it.
+
+**The commit phase is synchronous and atomic.** React applies every mutation it
+recorded, runs layout effects, and swaps the root pointer so
+`workInProgress` becomes `current`. It cannot be interrupted, because a half
+applied commit is a torn UI.
+
+Passive effects, the ones from `useEffect`, are scheduled after paint rather
+than during commit. That is why a `useLayoutEffect` can measure the DOM before
+the browser paints, and a `useEffect` cannot.
+
+## What this means for the code you write
+
+**Render can run more than once per commit, or run and be thrown away entirely.**
+This is not a dev-mode quirk. It is the normal operation of an interruptible
+renderer, and it is the mechanical reason render must be pure. Anything with an
+observable side effect in the component body may happen twice, or happen for a
+tree the user never sees.
+
+**Two fibers for your component exist at the same time.** If you stash something
+on a fiber-adjacent object and expect one copy, there are two.
+
+**"Why did this render?" is often the wrong question.** A render that produced
+no commit cost you nothing visible. The question that matters is what got
+committed, which is what the React DevTools profiler measures.
+
+<SourceTrail refs={[{ id: "react-lane-source", note: "The reconciler package alongside this file holds the work loop and the fiber structure itself, if you want to read the real implementation.", role: "further-reading" }]}>
+
+The reconciler source is more readable than its reputation suggests. Start with
+`ReactFiber.js` and `ReactFiberWorkLoop.js`.
+
+</SourceTrail>
+
+The loop that drives all of this, and the reason it yields every few
+milliseconds, is on
+[scheduling and time slicing](/docs/frameworks/react/scheduling-and-time-slicing).
