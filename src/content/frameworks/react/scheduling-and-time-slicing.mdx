@@ -1,0 +1,114 @@
+---
+title: Scheduling and time slicing
+section: React
+group: Internals
+library: frameworks
+order: 21
+appliesTo: React 19.2
+reviewed: 2026-09
+description: The loop that walks fibers checks a 5ms budget between every node and hands the thread back when it runs out. That one check is what "concurrent React" actually is.
+---
+
+[Fiber](/docs/frameworks/react/fiber) explains the data structure that makes a
+render pausable. This page is the loop that does the pausing, and the handful of
+rules it follows.
+
+There is less magic here than the word "concurrent" suggests. React is
+single-threaded. Nothing runs in parallel. What it does is stop often and
+voluntarily.
+
+## The loop
+
+<Mermaid
+  title="React's concurrent work loop"
+  description="React picks the highest priority pending lane, processes one fiber at a time, and checks a 5ms budget between each one. When the budget runs out it yields to the browser and resumes, unless a higher priority update has arrived, in which case it starts over."
+  caption="The 5ms check between fibers is the entire mechanism."
+  chart={`
+flowchart TD
+  A["Update scheduled"] --> B["Pick the highest pending lane"]
+  B --> C["Process one fiber"]
+  C --> D{"More fibers?"}
+  D -->|no| E["Commit, atomic"]
+  D -->|yes| F{"Past the 5ms budget?"}
+  F -->|no| C
+  F -->|yes| G["Yield to the browser"]
+  G --> H{"Higher lane arrived?"}
+  H -->|no| C
+  H -->|yes| B
+`}
+/>
+
+Between every fiber, React asks whether it has used its slice. The budget is
+5ms. If it has, it stops, schedules a continuation as a macrotask, and returns
+control to the browser so a click, a keystroke, or a paint can happen.
+
+This is deliberately not `requestIdleCallback`. React runs a fixed slice on a
+`MessageChannel` task because idle callbacks are unpredictable under load, and
+a UI framework needs to make progress even on a busy thread.
+
+## Interrupting means starting over
+
+When a higher priority update arrives during a render, React does not splice it
+into the half-built tree. It throws the work-in-progress tree away and starts
+again from the root with the new set of lanes.
+
+That sounds wasteful, and it is. It is also the cheaper option. Tracking which
+parts of a partial render are still valid would cost bookkeeping on every node;
+discarding costs one pointer reset. It is only safe because the render phase is
+pure, which is the deal React asks you to keep in return.
+
+<Callout variant="info" title="Redone work is not wasted output">
+
+Components that were already rendered get called again on the restart. Since
+render is a pure function of props and state, calling them again produces the
+same result, so nothing observable changes. The cost is CPU, not correctness.
+
+Unless your render is not pure, in which case the cost is a bug that only
+appears under load.
+
+</Callout>
+
+## Nothing gets starved
+
+A lower priority render that keeps getting interrupted would never finish if
+priority were the only rule. React tracks an expiration time per lane, and once
+a lane has waited too long it is marked expired and processed synchronously,
+interruptions be damned.
+
+So a transition is "interruptible" right up until it is not. That is why a
+heavily loaded page can suddenly block for the full duration of work that had
+been yielding politely for a second.
+
+## Commit is never sliced
+
+The render phase yields every 5ms. The commit phase does not yield at all. It
+applies every mutation, runs every layout effect, and swaps the root pointer in
+one synchronous block, because a half-applied commit would be a visibly torn UI.
+
+Two consequences worth holding onto:
+
+**A large commit is a long task, and no scheduling feature will change that.**
+Thousands of DOM mutations at once will block the thread for as long as they
+take. The fix is fewer mutations, usually by rendering fewer nodes.
+
+**Yields happen between fibers, not inside one.** One component whose render
+function takes 80ms is a single indivisible unit of work. `startTransition` will
+not split it. Splitting the component will.
+
+## What you actually control
+
+You do not call the scheduler. You choose which lane work lands on, which is
+covered on [the lane lattice](/docs/frameworks/react/lane-lattice), and you
+choose how much work there is.
+
+When a page feels slow despite correct transitions, the answer is almost always
+the second one, and
+[browser cost functions](/docs/frameworks/react/browser-cost) is where to look
+next.
+
+<SourceTrail refs={[{ id: "react-lane-source", note: "The lane definitions and expiration logic; the work loop itself lives beside it in ReactFiberWorkLoop.js.", role: "further-reading" }, { id: "react-start-transition", note: "The public contract that sits on top of all of this.", role: "supports" }]}>
+
+The 5ms constant is `frameYieldMs` in the scheduler package, and it has been
+stable for years, but it is an implementation detail rather than a promise.
+
+</SourceTrail>
