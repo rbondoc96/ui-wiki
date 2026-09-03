@@ -1,0 +1,135 @@
+---
+title: Description versus reality
+section: React
+group: Invariants
+library: frameworks
+order: 41
+appliesTo: React 19.2
+reviewed: 2026-09
+description: React holds a description of what the tree should be. The browser holds the DOM it actually painted. Every hydration bug, flash, and untraceable visual glitch is those two disagreeing.
+---
+
+React never hands the browser a finished UI and walks away. It keeps a
+description of what the tree should look like, and the browser keeps the nodes
+it actually painted. Those are two separate things, and every hydration error,
+first-paint flash, and "it only happens on refresh" bug is the gap between them.
+
+<Notation reads="From the moment hydration finishes onward, the description and the painted DOM must stay identical.">
+
+$$
+\forall t \ge t_{\text{hydration}},\quad D \equiv H_t
+$$
+
+</Notation>
+
+## The two trees
+
+$D$ is what React computed. $H_t$ is the DOM as it stands at time $t$. Under
+Server Components the split is literal: the Flight stream carries a description
+of the tree, not markup, and a separate server render turns that description
+into the HTML the browser receives.
+
+<Mermaid
+  title="From description to painted DOM"
+  description="A description produced on the server becomes HTML, which the browser paints. Hydration attaches React to those existing nodes and asserts the description still matches them."
+  caption="Hydration is the moment React claims the painted nodes as its own."
+  chart={`
+flowchart LR
+  D["Description (D)"] --> S["Server render"]
+  S --> HTML["HTML on the wire"]
+  HTML --> P["Browser paints (H)"]
+  P --> HY["Hydration"]
+  D --> HY
+  HY --> M{"D matches H?"}
+  M -->|yes| OK["React adopts the nodes"]
+  M -->|no| DISCARD["Discard and client render"]
+`}
+/>
+
+Hydration is not "React rendering again." React walks the DOM that is already
+there and asserts it is exactly what it would have produced. When the assertion
+fails, React logs the mismatch and throws the server HTML away back to the
+nearest `<Suspense>` boundary, or the whole root if there is none, then renders
+that region on the client. The HTML you paid a server to generate becomes
+wasted bytes.
+
+## The five things that break it
+
+<SourceTrail refs={[{ id: "react-hydrate-root", note: "Documents the hydration assertion and what React does with the server HTML when it fails.", role: "defines" }]}>
+
+**Nondeterministic values in render.** `Date.now()`, `Math.random()`, `new
+Date().toLocaleString()`. The server computed one answer, the client computes a
+different one milliseconds later.
+
+**Locale and timezone formatting.** The server formats in UTC and in the
+server's locale. The user's browser does neither. This one ships to production
+constantly because it looks correct on a developer machine in the same timezone.
+
+**Browser-only branches in render.** The `typeof window !== "undefined"` escape
+hatch from [environment ownership](/docs/frameworks/react/environment-ownership)
+lands here. It guarantees the two renders disagree, by construction.
+
+**Invalid HTML nesting.** A `<div>` inside a `<p>`, or a `<p>` inside a `<p>`.
+The browser silently repairs the structure while parsing, so the DOM it built is
+not the DOM the server described, and React finds a tree it never wrote.
+
+**Anything mutating the DOM outside React.** Browser extensions, a third-party
+script, or your own `ref.current.classList.add(...)`. React does not re-read the
+DOM. It renders against its description, so a node someone else changed stays
+changed until React happens to overwrite that exact property.
+
+</SourceTrail>
+
+## Fixing it
+
+The rule of thumb: **make the server and the first client render produce the
+same thing, then change it deliberately.**
+
+<Pattern version="React 19.2" checked="2026-09">
+
+```tsx
+// ❌ Server renders one timestamp, the client renders another.
+function PostedAt({ iso }: { iso: string }) {
+  return <time dateTime={iso}>{new Date(iso).toLocaleString()}</time>
+}
+
+// ✅ Render the stable value, then upgrade after mount.
+function PostedAt({ iso }: { iso: string }) {
+  const [local, setLocal] = useState<string | null>(null)
+  useEffect(() => setLocal(new Date(iso).toLocaleString()), [iso])
+  return <time dateTime={iso}>{local ?? iso}</time>
+}
+```
+
+For text that is genuinely time-dependent and cosmetic, `suppressHydrationWarning`
+on the element is the honest tool. It silences the check for that one node's
+text, and nothing else. Reaching for it because a component is hard to debug is
+how a real mismatch gets buried.
+
+</Pattern>
+
+## Where the formula overstates it
+
+<Callout variant="warning" title="React does not promise this at every instant">
+
+$\forall t$ claims the description and the DOM agree continuously. React
+guarantees something narrower: they agree **after every commit**.
+
+Between commits React is deliberately holding a work-in-progress tree that does
+not match the screen. That is the entire point of concurrent rendering. It is
+allowed to build a tree, throw it away when a higher priority update arrives,
+and never paint it. The screen keeps showing the last committed tree the whole
+time.
+
+So read the invariant as a rule about committed state, and about **your** code
+never opening a gap. React opens gaps on purpose and closes them itself.
+
+</Callout>
+
+<Callout variant="tip" title="The check, in one question">
+
+If this component renders on a server, will the first client render produce
+byte-identical output? If not, name the input that differs and decide whether to
+defer it to an effect or accept it explicitly.
+
+</Callout>
