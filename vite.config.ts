@@ -29,6 +29,10 @@ const dataLanguageTransformer: ShikiTransformer = {
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  server: {
+    host: "127.0.0.1",
+    allowedHosts: ["ui-wiki.localhost"],
+  },
   plugins: [
     devtools(),
     gitDates(),
