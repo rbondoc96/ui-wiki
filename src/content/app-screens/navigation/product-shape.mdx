@@ -1,0 +1,153 @@
+---
+title: Choosing nav from product and user flows
+section: Routing & Navigation
+library: app-screens
+order: 8
+description: Before picking a top bar or a sidebar, settle what the product is, how people move through it, how many pages it will have in a year, and which ones get used most. The chrome usually falls out of those answers.
+---
+
+<a href="/docs/app-screens/navigation/nav-pattern-picker">Top bar, sidebar, or
+tabs</a> decides the chrome from two inputs: how many destinations there are
+and how deeply they nest. This page is about getting those inputs right. They
+come from the product and the way people use it, not from the screens drawn so
+far.
+
+<Mermaid
+  title="From product to nav chrome"
+  description="Four steps in order: identify the product type and its main flows, inventory and group every page including planned ones, rank destinations by frequency and importance, then choose the chrome and measure after launch."
+  caption="Each step narrows the next. Skipping to the chrome is how apps end up with a top bar they outgrow."
+  chart={`
+flowchart TD
+  A["What is the product, what are the flows?"] --> B["Inventory and group the pages"]
+  B --> C["Rank by frequency and importance"]
+  C --> D["Pick the chrome"]
+  D --> E["Measure, then adjust"]
+`}
+/>
+
+## Start with what the product is
+
+The same twelve pages want different navigation depending on who opens the app
+and how often.
+
+| Product                       | How people use it                          | Nav leans toward                                    |
+| ----------------------------- | ------------------------------------------ | --------------------------------------------------- |
+| Daily work tool (Linear, Figma) | Hours a day, deep in one object, switching often | Sidebar, command palette, keyboard shortcuts    |
+| Occasional admin or portal    | A few visits a month, one task each        | Plain labels, task-first, top bar or short sidebar  |
+| Content or marketing site     | Browse and read                            | Top nav, footer, search                             |
+| Marketplace or store          | Search, compare, buy                       | Search-first top bar, categories, checkout outside the shell |
+| Consumer mobile app           | A few frequent tasks, one hand             | Bottom tabs                                         |
+
+The useful question is **how expert and how frequent** the typical user is.
+Daily users learn the layout and want density and shortcuts. Occasional users
+remember nothing between visits, so every label has to explain itself.
+
+## Map the flows, not the pages
+
+A page list hides how people move. Sketch the three or four flows that matter
+most and note which shape each one takes:
+
+- **Hub and spoke.** Users return to a home or dashboard between tasks. The hub
+  earns a permanent nav item; spokes can live one level down.
+- **Linear.** Sign-up, checkout, a multi-step form. Global nav is a distraction
+  mid-flow, so these routes usually
+  <a href="/docs/app-screens/navigation/nested-route-nav">leave the shell</a>
+  and show progress instead.
+- **Deep work in one object.** A project, a document, a ticket. Once inside, the
+  nav should switch to that object's pages, the scope swap from
+  <a href="/docs/app-screens/navigation/nested-route-nav">top bar + sidebar in
+  nested routes</a>.
+- **Browse and compare.** Lists with filters and sort. The nav matters less
+  than <a href="/docs/app-screens/navigation/url-as-state">filters in the
+  URL</a> and a fast way back to the list.
+
+Most products have one dominant flow. Design the nav for that one and make sure
+the others aren't blocked.
+
+## Inventory and group
+
+1. **List every page,** including the ones planned for the next year. A nav
+   designed for today's six pages breaks at fifteen.
+2. **Group them the way users would.** A quick
+   <Term id="card-sorting">card sort</Term> with five or so real users beats an
+   org chart: teams tend to group by who built it, users by what they're trying
+   to do.
+3. **Count the result.** The number of top-level groups and the depth of the
+   deepest one are the two inputs the chrome picker needs.
+
+If the top level has more groups than the chosen chrome can show, regroup
+before reaching for a bigger chrome. Too many top-level items is usually an
+<Term id="information-architecture" /> problem, not a layout problem.
+
+## Nouns or verbs
+
+Navigation can be organized around **objects** (Projects, Invoices, People) or
+**tasks** (Pay a bill, Request time off).
+
+- **Object-based** suits daily tools: users know what they're looking for and
+  act on it once there. Actions like "New project" live in a toolbar or button,
+  not in the nav.
+- **Task-based** suits occasional users who arrive with one job and don't know
+  the product's vocabulary.
+
+Pick one per level. A sidebar listing "Projects, Invoices, Pay a bill" makes
+people guess which kind of item they're reading.
+
+## Rank by frequency and importance
+
+Not every destination deserves a permanent slot. Place each one by how often
+it's used and how much it matters when it is.
+
+|                       | Used often                                   | Used rarely                                  |
+| --------------------- | -------------------------------------------- | -------------------------------------------- |
+| **Matters a lot**     | Primary nav, always visible                  | Secondary spot: account menu, settings       |
+| **Matters less**      | Shortcuts: recent items, command palette     | Search, footer, or a settings sub-page       |
+
+Frequency is a guess before launch. Write the guess down, then check it against
+real usage (see <a href="/docs/app-screens/navigation/measuring-navigation">measuring
+navigation usage</a>).
+
+## Roles change the nav
+
+Admins, members, and guests rarely need the same destinations. Trim the nav per
+role rather than showing items that only lead to "you don't have access."
+
+- **Keep the order stable.** An item that appears for admins slots into the
+  same position every time, so a person whose role changes doesn't relearn the
+  layout.
+- **Show a locked item only when it sells something.** A visible "Reports
+  (upgrade)" can be deliberate. A visible "Billing" that an editor can never
+  open is noise.
+
+## Plan for growth
+
+Rough thresholds for when the chrome stops fitting:
+
+| Top-level destinations | What usually works                                     |
+| ---------------------- | ------------------------------------------------------ |
+| Up to about 5          | Top bar, or bottom tabs on mobile                      |
+| About 6 to 15          | Sidebar                                                |
+| More than 15           | Grouped sidebar plus search or a command palette       |
+
+Switching from a top bar to a sidebar after launch moves every destination
+users have memorized. If the one-year inventory lands in a bigger row than
+today's, start with the chrome for that row.
+
+<DoDont>
+  <Do title="Choose the chrome for next year's page count">
+    Inventory planned pages too, group them with users, and pick the chrome that
+    fits where the product is headed. A sidebar with four items looks sparse for
+    a few months; a top bar with twelve looks broken for good.
+  </Do>
+  <Dont title="Mirror the org chart in the nav">
+    Top-level items named after teams or internal systems ("Platform", "Growth
+    tools") make sense to the people who built them and no one else. Group by
+    what users are trying to do.
+  </Dont>
+</DoDont>
+
+<Callout variant="tip" title="This page, in one line">
+  Know who uses the product and how often, map the dominant flow, inventory a
+  year of pages and group them with users, rank by frequency and importance,
+  and only then pick the chrome.
+</Callout>

@@ -12,7 +12,9 @@ import { NavPatternGallery } from "#/components/docs/nav-pattern-examples.tsx"
 three answers are nearly always the same: a **bottom tab bar**, a **sidebar**, or
 a **top nav**. The right one falls out of three properties of your app, not of
 your taste: how many top-level destinations there are, how deeply they nest, and
-what the platform expects.
+what the platform expects. If those counts aren't settled yet, start with
+<a href="/docs/app-screens/navigation/product-shape">choosing nav from product
+and user flows</a>.
 
 <NavPatternGallery />
 
@@ -52,6 +54,7 @@ Read your app against three properties and the answer is usually forced.
 | Many destinations, or any nesting    | **Sidebar**    | The only chrome that holds hierarchy             |
 | Few destinations, shallow, web/content | **Top nav**  | Familiar, light, no depth to express             |
 | Deep tool that's also used on phones | **Sidebar + tabs** | Sidebar on desktop, a tab subset on mobile  |
+| Few today, many within a year        | **Sidebar**    | Switching chrome later moves everything users memorized |
 
 <DoDont>
   <Do title="Match the count to the chrome">
