@@ -1,0 +1,172 @@
+---
+title: Top bar + sidebar in nested routes
+section: Routing & Navigation
+library: app-screens
+order: 12
+description: Once routes nest, every level of the tree needs a home on screen. Give each level exactly one piece of chrome, top bar, sidebar, tabs, or breadcrumbs, and let the layout route at that level render it.
+---
+
+import { NestedRouteDemo } from "#/components/docs/nested-route-examples.tsx"
+
+<a href="/docs/app-screens/navigation/nav-pattern-picker">Top bar, sidebar, or
+tabs</a> picks the chrome for the top level. Real apps nest: a project has
+pages, a page has settings, settings have sections. Every level of the route
+tree needs a home on screen, so the question shifts from "which chrome?" to
+**"which chrome owns which level?"**
+
+<NestedRouteDemo />
+
+## One level, one home
+
+Each level of depth gets exactly one piece of chrome. This table is the usual
+mapping; the depth where you switch can shift, but the order rarely does.
+
+| Level | Example route            | Usual home                    |
+| ----- | ------------------------ | ----------------------------- |
+| 1     | `/projects`              | Top bar or global sidebar     |
+| 2     | `/projects/42/issues`    | Section sidebar or sub-tabs   |
+| 3     | `…/42/settings/members`  | In-page tabs                  |
+| 4+    | anything deeper          | Breadcrumbs and content links |
+
+Two failure modes fall out of the rule:
+
+- **One level, two homes.** The top bar and the sidebar both list the same
+  sections. Users can't tell which one is "the" nav, and every new page has to
+  be added twice.
+- **One home, too many levels.** A sidebar tree four levels deep. A sidebar can
+  hold two levels comfortably (sections and their pages, as groups); past that,
+  hand the next level to tabs or breadcrumbs.
+
+## Three shapes
+
+### Top bar only
+
+The top bar holds level 1; anything deeper lives inside the page as tabs or
+links. Fits content sites and small apps with a handful of flat sections. It
+breaks when a section grows its own sub-pages, or past roughly seven top-level
+items, when links start overflowing into a "More" menu.
+
+### Sidebar only
+
+The sidebar holds levels 1 and 2 as groups, with search and account pinned to
+its top or bottom edge. Fits dashboards and tools with many destinations,
+Stripe's dashboard being the familiar example. It breaks when the user enters a
+scoped object, a project or a workspace, that has its own pages: the tree gets
+a third level and stops being scannable.
+
+### Top bar + sidebar
+
+The top bar owns the **scope**: the product sections, or the workspace switcher,
+plus global search and the account menu. The sidebar owns the **pages inside
+the current scope**. The AWS console works this way: services across the top,
+and each service brings its own left sidebar. This is the shape that scales to
+deep products, because each bar only ever shows one level.
+
+## The sidebar swaps with scope
+
+In the top bar + sidebar shape, entering a project or Settings replaces the
+sidebar's contents with that scope's pages. This falls out of the route tree
+for free when the sidebar is rendered by the **scope's layout route**, not by
+the root: navigate into `/projects/42` and the project layout mounts its own
+sidebar; navigate out and it unmounts. Flip between `/projects` and
+`/projects/42/issues` in the demo above to watch it happen.
+
+```txt
+src/routes/
+  __root.tsx                html shell, no chrome
+  login.tsx                 /login, outside the app chrome
+  _app.tsx                  top bar + <Outlet />
+  _app/
+    index.tsx               /
+    projects/
+      index.tsx             /projects
+      $projectId.tsx        project sidebar + <Outlet />
+      $projectId/
+        issues.tsx          /projects/42/issues
+        settings.tsx        settings tabs + <Outlet />
+        settings/
+          general.tsx       /projects/42/settings/general
+          members.tsx       /projects/42/settings/members
+```
+
+`_app` is a **pathless layout route** in TanStack Router: the leading
+underscore means it wraps its children in chrome without adding a URL segment.
+
+<Callout variant="warning" title="The swap hides the way back">
+  When the sidebar's contents change, the user loses sight of where they came
+  from. Keep the parent level visible (the top bar still shows "Projects"), name
+  the current scope at the top of the sidebar ("Project: Atlas", with a switcher),
+  and give Settings-style scopes an explicit "Back to app" item.
+</Callout>
+
+## Routes that leave the shell
+
+Some screens shouldn't show the app chrome at all: sign-in, onboarding,
+checkout, a full-screen editor, a print view. Put them under a separate pathless
+layout that renders only an `<Outlet />`, or outside `_app` entirely like
+`login.tsx` above.
+
+For a screen that keeps its parent's URL but drops the parent's chrome, such as
+`/projects/42/editor` without the project sidebar, TanStack Router un-nests a
+route with a trailing underscore on the parent segment (`$projectId_/editor.tsx`).
+The URL stays nested; the layout doesn't.
+
+<DoDont>
+  <Do title="Give every escaped route a way out">
+    With the chrome gone, the screen needs its own exit: a close button, a
+    "Back to project" link, or a clear final step that returns into the shell.
+  </Do>
+  <Dont title="Hide the chrome with a flag">
+    A `hideSidebar` prop toggled per page spreads layout decisions across leaf
+    components. Let the route tree decide what wraps what, so the layout is
+    visible in one place.
+  </Dont>
+</DoDont>
+
+## Which item is active
+
+Each level highlights its own segment of the URL. On
+`/projects/42/settings/members`, the top bar lights "Projects", the sidebar
+lights "Settings", and the tabs light "Members", all at once. The demo above
+opens on that URL.
+
+The rule that makes this work is **prefix matching**: an item is active when
+the current path starts with its target, so "Settings" stays lit on every
+settings sub-page. TanStack Router's `<Link>` matches this way by default. The
+one exception is the home or index item, which every path starts with: mark it
+`activeOptions={{ exact: true }}` or it stays lit everywhere.
+
+## On smaller screens
+
+The levels don't disappear on a phone, they move:
+
+- **Level 1** becomes a bottom tab bar or a drawer.
+- **Level 2**, the sidebar, becomes a drawer or its own list screen that pushes
+  to the page, the same fold as
+  <a href="/docs/app-screens/layouts/master-detail">master-detail</a>.
+- **Level 3** tabs become horizontally scrolling tabs or a select.
+
+The order the regions collapse in is covered in
+<a href="/docs/app-screens/layouts/responsive-app-shell">responsive
+app-shell</a>.
+
+<PlatformTabs>
+  <Platform label="Web">
+    Layout routes map one-to-one onto chrome: each layout route that renders a
+    bar, sidebar, or tab strip owns the level beneath it. The URL carries the
+    full path, so every level can be deep-linked and the active state is derived
+    from it rather than stored.
+  </Platform>
+  <Platform label="React Native">
+    Navigators take the place of layout routes: a tab navigator for level 1, a
+    stack inside each tab for depth, and a drawer for level 2 on tablets. Expo
+    Router expresses the same nesting with folders and `_layout.tsx` files, so
+    the file tree above translates almost directly.
+  </Platform>
+</PlatformTabs>
+
+<Callout variant="tip" title="This page, in one line">
+  Give each level of the route tree exactly one piece of chrome, render it from
+  the layout route at that level so it swaps with scope, keep the parent level
+  visible, and highlight by prefix so every level shows where you are.
+</Callout>
