@@ -1,13 +1,15 @@
 import { useState } from "react"
 import type { ReactNode } from "react"
 
-import { Bar } from "#/components/docs/shell.tsx"
+import { Bar, PhoneFrame } from "#/components/docs/shell.tsx"
 import { cn } from "#/lib/utils.ts"
 
 // The route-tree demo for the nested-route-nav page. Picking a URL lights the
 // matched branch of the route tree and the active item at every nav level of a
 // small app, so two lessons show without explanation: each layout route renders
 // one piece of chrome, and every level highlights by prefix at the same time.
+// The phone view renders the same URLs with each level moved to its phone home:
+// bottom tabs, a header that names the page, and the sidebar in a drawer.
 
 const REGION_LABEL = {
   content: "page",
@@ -149,8 +151,8 @@ function RouteTreePanel({ route }: { route: RouteKey }) {
   )
 }
 
-// Nav items are inert spans: the URL chips are the only control, so the
-// highlight is always derived from the URL, never clicked into place.
+// Nav items are inert spans: the URL chips are the only way to navigate, so
+// the highlight is always derived from the URL, never clicked into place.
 function NavItem({
   active,
   children,
@@ -253,14 +255,38 @@ function PageContent({ route }: { route: RouteKey }) {
   }
 }
 
+function SettingsTabs({ route }: { route: RouteKey }) {
+  return (
+    <nav
+      aria-label="Settings"
+      className="flex gap-1 overflow-x-auto border-b border-border px-3 pt-2"
+    >
+      {(["general", "members"] as const).map((tab) => (
+        <span
+          aria-current={route === tab ? "page" : undefined}
+          className={cn(
+            "-mb-px shrink-0 border-b-2 px-2 pb-1.5 capitalize",
+            route === tab
+              ? "border-foreground font-medium text-foreground"
+              : "border-transparent text-muted-foreground"
+          )}
+          key={tab}
+        >
+          {tab}
+        </span>
+      ))}
+    </nav>
+  )
+}
+
 function OnboardingScreen() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center">
       <span className="text-muted-foreground">Step 1 of 3</span>
       <p className="text-sm font-medium text-foreground">
         Name your first project
       </p>
-      <span className="w-56 rounded-md border border-border px-2 py-1 text-left text-muted-foreground">
+      <span className="w-full max-w-56 rounded-md border border-border px-2 py-1 text-left text-muted-foreground">
         Atlas Web
       </span>
       <span className="rounded-md bg-primary px-3 py-1 text-primary-foreground">
@@ -317,27 +343,7 @@ function MiniApp({ route }: { route: RouteKey }) {
           </nav>
         ) : null}
         <div className="flex min-w-0 flex-1 flex-col">
-          {chain.includes("settings") ? (
-            <nav
-              aria-label="Settings"
-              className="flex gap-1 border-b border-border px-3 pt-2"
-            >
-              {(["general", "members"] as const).map((tab) => (
-                <span
-                  aria-current={route === tab ? "page" : undefined}
-                  className={cn(
-                    "-mb-px border-b-2 px-2 pb-1.5 capitalize",
-                    route === tab
-                      ? "border-foreground font-medium text-foreground"
-                      : "border-transparent text-muted-foreground"
-                  )}
-                  key={tab}
-                >
-                  {tab}
-                </span>
-              ))}
-            </nav>
-          ) : null}
+          {chain.includes("settings") ? <SettingsTabs route={route} /> : null}
           <div className="flex flex-col gap-1.5 p-3">
             <PageContent route={route} />
           </div>
@@ -347,11 +353,180 @@ function MiniApp({ route }: { route: RouteKey }) {
   )
 }
 
+// On a phone the header names the current page, since the sidebar that
+// normally shows it is tucked into a drawer.
+const PHONE_TITLE = {
+  board: "Board",
+  general: "Settings",
+  home: "Atlas",
+  issues: "Issues",
+  members: "Settings",
+  onboarding: "",
+  projects: "Projects",
+} as const satisfies Record<RouteKey, string>
+
+function ProjectDrawer({ route }: { route: RouteKey }) {
+  const chain = chainOf(route)
+  return (
+    <div className="absolute inset-0 flex">
+      <nav
+        aria-label="Project"
+        className="flex w-40 flex-col gap-0.5 border-r border-border bg-card p-2 shadow-lg"
+      >
+        <span className="px-2 text-[0.65rem] text-muted-foreground">
+          ← All projects
+        </span>
+        <span className="mb-1 border-b border-border px-2 pt-1 pb-2 font-medium text-foreground">
+          Atlas Web
+          <span className="block text-[0.6rem] font-normal text-muted-foreground">
+            Project
+          </span>
+        </span>
+        <NavItem active={route === "issues"}>Issues</NavItem>
+        <NavItem active={route === "board"}>Board</NavItem>
+        <NavItem active={chain.includes("settings")}>Settings</NavItem>
+      </nav>
+      <div className="flex-1 bg-foreground/20" />
+    </div>
+  )
+}
+
+function PhoneApp({
+  drawerOpen,
+  onToggleDrawer,
+  route,
+}: {
+  drawerOpen: boolean
+  onToggleDrawer: () => void
+  route: RouteKey
+}) {
+  const chain = chainOf(route)
+
+  if (chain.includes("focus")) {
+    return (
+      <div className="flex flex-1 flex-col">
+        <div className="flex justify-end px-3 py-2">
+          <span aria-label="Close" className="text-muted-foreground">
+            ✕
+          </span>
+        </div>
+        <OnboardingScreen />
+      </div>
+    )
+  }
+
+  const inProject = chain.includes("project")
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
+        {inProject ? (
+          <span aria-label="Up to Projects" className="text-muted-foreground">
+            ‹
+          </span>
+        ) : null}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold text-foreground">
+            {PHONE_TITLE[route]}
+          </span>
+          {inProject ? (
+            <span className="block text-[0.6rem] text-muted-foreground">
+              Atlas Web
+            </span>
+          ) : null}
+        </span>
+        {inProject ? (
+          <button
+            aria-expanded={drawerOpen}
+            aria-label="Project pages"
+            className={cn(
+              "rounded-md px-1.5 py-0.5 transition-colors",
+              drawerOpen
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={onToggleDrawer}
+            type="button"
+          >
+            ☰
+          </button>
+        ) : null}
+      </div>
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        {chain.includes("settings") ? <SettingsTabs route={route} /> : null}
+        <div className="flex flex-col gap-1.5 overflow-hidden p-3">
+          <PageContent route={route} />
+        </div>
+        {inProject && drawerOpen ? <ProjectDrawer route={route} /> : null}
+      </div>
+      <nav aria-label="Main" className="flex border-t border-border">
+        {(
+          [
+            ["Home", route === "home"],
+            ["Projects", chain.includes("projects")],
+            ["Search", false],
+            ["You", false],
+          ] as const
+        ).map(([label, active]) => (
+          <span
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex-1 py-2 text-center text-[0.65rem]",
+              active ? "font-semibold text-foreground" : "text-muted-foreground"
+            )}
+            key={label}
+          >
+            {label}
+          </span>
+        ))}
+      </nav>
+    </div>
+  )
+}
+
+const VIEWPORTS = ["desktop", "phone"] as const
+
+type Viewport = (typeof VIEWPORTS)[number]
+
 export function NestedRouteDemo() {
   const [route, setRoute] = useState<RouteKey>("members")
+  const [viewport, setViewport] = useState<Viewport>("desktop")
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  function pickRoute(next: RouteKey) {
+    setRoute(next)
+    setDrawerOpen(false)
+  }
+
+  function pickViewport(next: Viewport) {
+    setViewport(next)
+    setDrawerOpen(false)
+  }
 
   return (
     <figure className="not-prose my-8 leading-normal">
+      <div
+        aria-label="View as"
+        className="mb-2 flex w-fit gap-0.5 rounded-md bg-muted/40 p-0.5 text-xs"
+        role="group"
+      >
+        {VIEWPORTS.map((v) => (
+          <button
+            aria-pressed={v === viewport}
+            className={cn(
+              "rounded px-2.5 py-0.5 capitalize transition-colors",
+              v === viewport
+                ? "bg-background font-medium text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+            key={v}
+            onClick={() => pickViewport(v)}
+            type="button"
+          >
+            {v}
+          </button>
+        ))}
+      </div>
       <div
         aria-label="Choose a URL"
         className="mb-3 flex flex-wrap gap-1.5"
@@ -367,7 +542,7 @@ export function NestedRouteDemo() {
                 : "border-border text-muted-foreground hover:text-foreground"
             )}
             key={key}
-            onClick={() => setRoute(key)}
+            onClick={() => pickRoute(key)}
             type="button"
           >
             {ROUTES[key].url}
@@ -376,13 +551,26 @@ export function NestedRouteDemo() {
       </div>
       <div className="grid items-start gap-4 md:grid-cols-[13rem_minmax(0,1fr)]">
         <RouteTreePanel route={route} />
-        <div className="overflow-x-auto">
-          <MiniApp route={route} />
-        </div>
+        {viewport === "desktop" ? (
+          <div className="overflow-x-auto">
+            <MiniApp route={route} />
+          </div>
+        ) : (
+          <div className="flex h-[26rem] justify-center rounded-xl border border-border bg-muted/20 p-3 text-xs">
+            <PhoneFrame>
+              <PhoneApp
+                drawerOpen={drawerOpen}
+                onToggleDrawer={() => setDrawerOpen((open) => !open)}
+                route={route}
+              />
+            </PhoneFrame>
+          </div>
+        )}
       </div>
       <figcaption className="mt-2 text-center text-xs text-muted-foreground">
         Pick a URL. Each matched layout route renders one piece of chrome, and
-        every level highlights its own segment at once.
+        every level highlights its own segment at once. On a phone, open ☰ to
+        find the sidebar.
       </figcaption>
     </figure>
   )

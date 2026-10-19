@@ -136,19 +136,93 @@ settings sub-page. TanStack Router's `<Link>` matches this way by default. The
 one exception is the home or index item, which every path starts with: mark it
 `activeOptions={{ exact: true }}` or it stays lit everywhere.
 
-## On smaller screens
+## On a phone
 
-The levels don't disappear on a phone, they move:
+The levels don't disappear on a phone, they move. Switch the demo above to
+**Phone** and step through the same URLs.
 
-- **Level 1** becomes a bottom tab bar or a drawer.
-- **Level 2**, the sidebar, becomes a drawer or its own list screen that pushes
-  to the page, the same fold as
-  <a href="/docs/app-screens/layouts/master-detail">master-detail</a>.
-- **Level 3** tabs become horizontally scrolling tabs or a select.
+| Level | Desktop     | Phone                                              |
+| ----- | ----------- | -------------------------------------------------- |
+| 1     | Top bar     | Bottom tab bar in an app, a ☰ menu on a website    |
+| 2     | Sidebar     | A drawer, its own screen, or a menu on the title   |
+| 3     | Tabs        | Tabs that scroll sideways, or a select past five   |
+| 4+    | Breadcrumbs | A back button in the header                        |
 
-The order the regions collapse in is covered in
+At `/projects/42/settings/members`, that looks like:
+
+```txt
+┌───────────────────────┐
+│ ‹  Settings        ☰  │  up to Projects · page title · project pages
+│    Atlas Web          │  the scope, under the title
+│  General │ Members    │  level 3, scrolls sideways
+│ ───────────────────── │
+│  Sam Rivera     Owner │
+│  Priya N.      Editor │
+├───────────────────────┤
+│ Home Projects Search  │  level 1, bottom tabs
+└───────────────────────┘
+```
+
+### Where the sidebar goes
+
+Level 2 has no room on a phone. Three common homes, each with a cost:
+
+- **A drawer.** A ☰ button in the header slides the sidebar in over the page.
+  It keeps the desktop structure intact, which is why the demo uses it, but
+  the project's pages stay out of sight until someone thinks to open it.
+- **Its own screen.** `/projects/42` becomes a list (Issues, Board, Settings)
+  that pushes forward to each page, the same fold as
+  <a href="/docs/app-screens/layouts/master-detail">master-detail</a>. This is
+  what native apps do and what people expect from them. It needs an index
+  route for the scope that desktop may never show.
+- **A menu on the title.** Tapping "Settings ▾" in the header opens a sheet of
+  the project's pages. It's the most compact option and the easiest to miss,
+  since nothing says the title is tappable.
+
+### The header does the wayfinding
+
+With the sidebar hidden, nothing on screen says where you are unless the
+header does. Give it three jobs:
+
+- **The title names the current page,** the one the sidebar would have lit.
+- **The scope sits under it,** "Atlas Web", so the swap from the
+  <a href="#the-sidebar-swaps-with-scope">desktop sidebar</a> still reads.
+- **‹ goes up one level,** to Projects, not back in history. Make it a real
+  link to the parent route; the browser's back button already covers history,
+  and the two disagree whenever someone arrives from a deep link.
+
+### Websites and apps differ
+
+A content or marketing site on a phone usually collapses its top bar into the
+logo, a ☰ menu, and search. People expect that on a website, and visits are
+short. A web app with daily, repeated tasks earns a bottom tab bar instead:
+every top-level section stays one tap away, and the thumb reaches it.
+
+### Watch the vertical budget
+
+Stacked chrome adds up fast. On an 844px-tall phone, a 56px header, a 44px tab
+strip, a 50px tab bar, and the home indicator below it take roughly a quarter
+of the screen, before the browser's own address bar.
+
+<DoDont>
+  <Do title="Give the header the wayfinding">
+    Title for the page, scope under it, ‹ for up one level. Then the sidebar
+    can hide in a drawer or its own screen without anyone losing their place.
+  </Do>
+  <Dont title="Stack every level's chrome">
+    A header, a level 2 tab strip, a level 3 tab strip, and a bottom bar leave a
+    sliver for content. Hide the header on scroll down, turn level 3 into a
+    select, and never stack two tab strips.
+  </Dont>
+</DoDont>
+
+Routes that leave the shell go full-screen on a phone too: no tab bar, and a
+clear ✕ or back button in the corner (try `/onboarding` in the demo). The order
+regions collapse in is covered in
 <a href="/docs/app-screens/layouts/responsive-app-shell">responsive
-app-shell</a>.
+app-shell</a>, and the width ranges in
+<a href="/docs/app-screens/layouts/viewport-classes">layouts from phone to
+ultrawide</a>.
 
 <PlatformTabs>
   <Platform label="Web">
@@ -168,5 +242,6 @@ app-shell</a>.
 <Callout variant="tip" title="This page, in one line">
   Give each level of the route tree exactly one piece of chrome, render it from
   the layout route at that level so it swaps with scope, keep the parent level
-  visible, and highlight by prefix so every level shows where you are.
+  visible, and highlight by prefix. On a phone, move each level to its phone
+  home and let the header say where you are.
 </Callout>
