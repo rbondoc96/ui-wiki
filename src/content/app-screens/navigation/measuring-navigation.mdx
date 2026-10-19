@@ -1,0 +1,193 @@
+---
+title: Measuring navigation usage
+section: Routing & Navigation
+library: app-screens
+order: 30
+description: Every navigation layout starts as a guess about what people use. Record how they actually get around, which item, from which piece of chrome, on which screen size, so the next layout change is decided on evidence.
+---
+
+A nav layout encodes guesses: which destinations matter, how often people
+switch between them, which screen sizes they use. Those guesses are fine at
+launch. What isn't fine is still guessing a year later when someone proposes
+moving Reports into the sidebar. Instrument navigation from the start, and the
+next layout decision gets real numbers.
+
+## Questions first, then events
+
+Decide what you want to learn before deciding what to log. Each question maps
+to a small piece of data.
+
+| Question                               | Capture                                         | What to look for                                     |
+| -------------------------------------- | ----------------------------------------------- | ---------------------------------------------------- |
+| Which nav items get used?              | Destination of each navigation                  | Items almost nobody opens                            |
+| How do people get places?              | The **source** of each navigation               | Pages in the nav that people mostly reach by search  |
+| Is the sidebar worth its width?        | Collapsed or expanded, per session              | Wide screens that collapse it anyway                 |
+| Which layouts matter most?             | Viewport class and input type                   | The real share of phones, tablets, ultrawides        |
+| Where do people get lost?              | Back navigations and their timing               | <Term id="pogo-sticking" /> between the same pages   |
+
+The **source** is the column that makes nav data useful. If 40% of visits to
+Members come from search even though Members sits in the sidebar, that says
+more about the sidebar than any count of visits.
+
+## One event, typed
+
+Log one event per navigation. The router already knows when a navigation
+finishes; the only thing it can't know is which piece of chrome the user
+clicked, so nav components mark that just before they navigate.
+
+```ts
+import type { RegisteredRouter, RouteIds } from "@tanstack/react-router"
+
+export const NAV_SOURCE = {
+  breadcrumb: "breadcrumb",
+  commandPalette: "command-palette",
+  direct: "direct",
+  history: "history",
+  inPage: "in-page",
+  search: "search",
+  sidebar: "sidebar",
+  tabs: "tabs",
+  topBar: "top-bar",
+} as const
+
+type NavSource = (typeof NAV_SOURCE)[keyof typeof NAV_SOURCE]
+
+// Route templates like "/_app/projects/$projectId/issues", never raw paths.
+type RouteId = RouteIds<RegisteredRouter["routeTree"]>
+
+// Widest first, so the first match is the class. Minimums in CSS px.
+const VIEWPORT_CLASSES = [
+  ["extra-large", 1600],
+  ["large", 1200],
+  ["expanded", 840],
+  ["medium", 600],
+  ["compact", 0],
+] as const
+
+type ViewportClass = (typeof VIEWPORT_CLASSES)[number][0]
+
+export type NavEvent = {
+  from: RouteId | null
+  input: "coarse" | "fine"
+  source: NavSource
+  to: RouteId
+  viewport: ViewportClass
+}
+
+function viewportClass(width: number): ViewportClass {
+  return VIEWPORT_CLASSES.find(([, min]) => width >= min)?.[0] ?? "compact"
+}
+```
+
+`RouteIds` comes from the registered route tree, so a renamed or deleted route
+breaks the type instead of silently splitting the data into old and new names.
+
+The listener ties it together. History actions tell back and forward apart from
+pushes; anything unmarked with a previous location was an ordinary link in the
+page, and anything with no previous location was a direct visit or deep link.
+
+```ts
+// Set by nav components just before they navigate; read once, then cleared.
+let pendingSource: NavSource | null = null
+
+export function markNavSource(source: NavSource) {
+  pendingSource = source
+}
+
+export function instrumentNavigation(
+  router: RegisteredRouter,
+  send: (event: NavEvent) => void
+) {
+  let wasHistoryPop = false
+  let from: RouteId | null = null
+
+  const stopHistory = router.history.subscribe(({ action }) => {
+    wasHistoryPop =
+      action.type === "BACK" || action.type === "FORWARD" || action.type === "GO"
+  })
+
+  const stopRouter = router.subscribe("onResolved", (event) => {
+    if (!event.pathChanged) return
+    const to = router.state.matches.at(-1)?.routeId
+    if (!to) return
+
+    const source =
+      pendingSource ??
+      (wasHistoryPop
+        ? NAV_SOURCE.history
+        : event.fromLocation
+          ? NAV_SOURCE.inPage
+          : NAV_SOURCE.direct)
+
+    send({
+      from,
+      input: matchMedia("(pointer: coarse)").matches ? "coarse" : "fine",
+      source,
+      to,
+      viewport: viewportClass(window.innerWidth),
+    })
+
+    from = to
+    pendingSource = null
+    wasHistoryPop = false
+  })
+
+  return () => {
+    stopHistory()
+    stopRouter()
+  }
+}
+```
+
+Each piece of chrome marks itself once, in its own link component, rather than
+at every call site:
+
+```tsx
+<Link onClick={() => markNavSource(NAV_SOURCE.sidebar)} to="/projects">
+  Projects
+</Link>
+```
+
+Call `instrumentNavigation` once on the client, after the router is created, and
+pass whatever `send` your analytics tool wants. The viewport buckets are the
+<Term id="window-size-class">window size classes</Term> from
+<a href="/docs/app-screens/layouts/viewport-classes">layouts from phone to
+ultrawide</a>.
+
+<Callout variant="warning" title="Log route templates, not URLs">
+  A real path carries IDs, slugs, and sometimes emails or tokens
+  (`/invite/sam@example.com`). The route ID (`/_app/projects/$projectId`) says
+  which screen without saying whose. Leave query strings out too: search terms
+  are often personal. Check whether your analytics need consent where your users
+  live before shipping any of this.
+</Callout>
+
+## Reading the numbers
+
+Each signal suggests a change worth testing, not one to ship blindly.
+
+| Signal                                                     | Change worth testing                                |
+| ---------------------------------------------------------- | --------------------------------------------------- |
+| An item almost nobody uses, across every segment           | Move it to overflow, settings, or search            |
+| A nav page reached mostly through search                   | Rename it, or move it higher                        |
+| The sidebar collapsed in most wide-screen sessions         | A slimmer rail by default                           |
+| Phones are a large share of sessions                       | Put the phone layout first in the next round        |
+| Pogo-sticking between two pages                            | Merge them, or show the missing detail inline       |
+
+## Traps
+
+- **Hidden items look unused.** Something buried in an overflow menu gets few
+  clicks because it's buried. Low usage of a hidden item says nothing about
+  demand.
+- **Redesigns spike, then settle.** Right after a nav change, usage shifts
+  because things moved, not because they're better. Compare a few weeks out.
+- **Averages hide segments.** Daily experts and first-week users navigate
+  differently. Split by tenure or role before drawing conclusions.
+- **Numbers say what, not why.** Pair a surprising number with a handful of
+  sessions watching real people, or a few short interviews, before acting on it.
+
+<Callout variant="tip" title="This page, in one line">
+  Log one typed event per navigation with its source, route template, viewport
+  class, and input type; keep personal data out; and treat each signal as a
+  change to test, checked against what real users say.
+</Callout>
