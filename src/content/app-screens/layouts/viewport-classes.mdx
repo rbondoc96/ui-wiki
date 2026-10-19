@@ -1,0 +1,173 @@
+---
+title: Layouts from phone to ultrawide
+section: Layouts & Archetypes
+library: app-screens
+order: 42
+description: Five named width ranges, from phones under 600px to ultrawide monitors past 1600px, and what each one gets. The narrow end is about shedding regions; the wide end is about not stretching, and spending the extra width on panes instead.
+---
+
+import { ViewportClassDemo } from "#/components/docs/viewport-class-examples.tsx"
+
+<a href="/docs/app-screens/layouts/responsive-app-shell">Responsive app-shell</a>
+covers how a shell sheds regions as it narrows. This page puts names and
+numbers on the widths, and covers the end that page doesn't: screens wide
+enough that the problem flips from "what do we drop?" to "what do we do with
+all this room?"
+
+<ViewportClassDemo />
+
+## Five classes
+
+Android's <Term id="window-size-class">window size classes</Term> give a
+ready-made set of breakpoints that line up with real devices. They're defined
+in dp, but dp and CSS pixels are both density-independent units, so the
+numbers carry over to the web as-is.
+
+<SourceTrail refs={[{ id: "android-window-size-classes", note: "Width classes and their ranges: compact under 600dp, medium 600 to 839, expanded 840 to 1199, large 1200 to 1599, extra-large 1600 and up.", role: "defines" }]}>
+
+| Class       | Width (CSS px) | Typical screens                  | Layout                      |
+| ----------- | -------------- | -------------------------------- | --------------------------- |
+| Compact     | under 600      | Phones                           | Tab bar, one pane           |
+| Medium      | 600 to 839     | Tablets in portrait, foldables   | Rail, one pane              |
+| Expanded    | 840 to 1199    | Tablets in landscape, laptops    | Rail or sidebar, two panes  |
+| Large       | 1200 to 1599   | Laptops, desktop monitors        | Sidebar, two panes          |
+| Extra-large | 1600 and up    | Large and ultrawide monitors     | Sidebar, two or three panes |
+
+</SourceTrail>
+
+Tailwind's default breakpoints (640, 768, 1024, 1280, 1536) don't line up with
+these. Either is fine; what matters is one named set used everywhere. To use
+the classes directly, add them to the theme:
+
+```css
+@theme {
+  --breakpoint-medium: 37.5rem; /* 600px */
+  --breakpoint-expanded: 52.5rem; /* 840px */
+  --breakpoint-large: 75rem; /* 1200px */
+  --breakpoint-xlarge: 100rem; /* 1600px */
+}
+```
+
+That makes `expanded:grid-cols-2` and friends available alongside the defaults.
+
+## Phones
+
+One pane at a time, a bottom tab bar, and the list pushing to the detail as in
+<a href="/docs/app-screens/layouts/master-detail">master-detail</a>.
+
+- **Thumb reach.** Primary nav goes at the bottom, where one-handed use can
+  reach it. Destructive or rare actions can live at the top.
+- **Safe areas.** Notches and home indicators cover the edges. Add
+  `viewport-fit=cover` to the viewport meta tag and pad fixed bars with
+  `env(safe-area-inset-bottom)`, or the tab bar sits under the home indicator.
+- **Landscape is short.** A phone on its side is wide but only about 400px
+  tall, and a fixed top bar plus a tab bar can eat a third of that. Hide or
+  shrink fixed bars when the height is small, not just when the width is.
+
+<SourceTrail refs={[{ id: "wcag-target-size-minimum", note: "SC 2.5.8 (AA): pointer targets at least 24 by 24 CSS pixels, with spacing exceptions.", role: "supports" }]}>
+
+Touch targets need room. WCAG 2.5.8 sets a floor of **24 by 24 CSS pixels**;
+the platform guidelines ask for more (44pt on iOS, 48dp on Android), and those
+are the sizes that feel right under a thumb.
+
+</SourceTrail>
+
+## Tablets
+
+The awkward middle. A tablet in portrait is about as wide as a small laptop
+window, but it's driven by touch.
+
+- **Rail, not tabs.** At 600px and up, a bottom tab bar stretches into a wide
+  strip of mostly empty space. A vertical rail on the left holds the same
+  destinations.
+- **Still one pane in portrait.** Two panes at 700px leave both cramped.
+  Landscape usually crosses into expanded, where the split earns its place.
+- **No hover.** Row actions that appear on hover never appear on a tablet. Gate
+  hover-only affordances on the input, not the width:
+
+```css
+/* Hide row actions behind hover only where hover exists. */
+@media (hover: hover) {
+  .row-actions { opacity: 0; }
+  .row:hover .row-actions,
+  .row:focus-within .row-actions { opacity: 1; }
+}
+```
+
+## Desktop and wide
+
+This is the range most apps are designed at, and the
+<a href="/docs/app-screens/layouts/nav-rail-triptych">nav-rail + triptych</a>
+fits it naturally: nav, list, and content side by side. Between expanded and
+large the main change is the nav itself: a rail of icons at the narrow end, a
+sidebar with full labels once there's room. Let users collapse the sidebar back
+to a rail, and remember their choice.
+
+## Ultrawide
+
+Past 1600px, and especially on 21:9 monitors at 2560 to 3440px, the failure
+mode reverses. Nothing needs to be dropped; the risk is **stretching**.
+
+- **Cap the reading width.** A paragraph that runs 300 characters wide is hard
+  to read: the eye loses its place returning to the next line. Keep text blocks
+  near 60 to 80 characters with a `max-width` in `ch`.
+- **Spend the width on panes.** An inspector, a preview, a second document side
+  by side. Extra panes use the room; a wider paragraph wastes it.
+- **Keep content near the nav.** Centering a capped column on a 3440px screen
+  can leave 25cm or more of empty screen between the sidebar and the content.
+  Anchor the content next to the nav and put extra panes on the far side, or
+  cap and center the whole shell.
+- **Data is the exception.** Tables, boards, and dashboards can use the width
+  directly: more columns, more cards per row. The cap is for prose, not grids.
+
+<SourceTrail refs={[{ id: "wcag-visual-presentation", note: "SC 1.4.8 (AAA): blocks of text no wider than 80 characters, or 40 for CJK.", role: "supports" }]}>
+
+<Callout variant="info" title="Where the 80 comes from">
+  WCAG 1.4.8, a Level AAA criterion, asks that blocks of text be no wider than
+  80 characters (40 for Chinese, Japanese, and Korean). `max-width: 80ch` is a
+  direct way to meet it.
+</Callout>
+
+</SourceTrail>
+
+## Width isn't the whole story
+
+- **Input.** A touchscreen laptop is wide and touch-driven; an iPad with a
+  trackpad is narrow-ish and precise. Use `(pointer: coarse)` and
+  `(hover: hover)` for input-dependent behavior, and width for layout.
+- **Height.** Landscape phones and 768px-tall laptops run out of vertical room
+  first. Fixed headers, footers, and tall toolbars are the usual culprits.
+- **Container size.** A pane inside a split is narrower than the window. When a
+  component should respond to its own space, use container queries (see
+  <a href="/docs/app-screens/layouts/responsive-app-shell">responsive
+  app-shell</a>).
+- **Zoom.** Browser zoom shrinks the CSS width. A 1280px window at 200% zoom is
+  a 640px layout, so desktop users who zoom land in the tablet class.
+
+<SourceTrail refs={[{ id: "wcag-reflow", note: "SC 1.4.10 (AA): content reflows at 320 CSS px without two-dimensional scrolling, equivalent to 1280px at 400% zoom.", role: "supports" }]}>
+
+WCAG 1.4.10 (AA) asks that content work at **320 CSS pixels** wide without
+scrolling in two directions, the equivalent of a 1280px window at 400% zoom.
+That makes 320 the narrowest width to test, below any phone in common use.
+
+</SourceTrail>
+
+## Widths to test
+
+| Width        | Stands in for                                      |
+| ------------ | -------------------------------------------------- |
+| 320          | Reflow floor, and a zoomed desktop                 |
+| 390          | A current phone in portrait                        |
+| 768          | A tablet in portrait                               |
+| 1024         | A tablet in landscape, a small laptop              |
+| 1440         | A common laptop and desktop width                  |
+| 2560 to 3440 | Large and ultrawide monitors                       |
+
+Check each with touch emulation on at the narrow end, and check a phone in
+landscape for height.
+
+<Callout variant="tip" title="This page, in one line">
+  Name five width classes and use them everywhere; shed regions toward the
+  phone, switch tabs to a rail at tablet width, and on ultrawide screens cap
+  text near 80 characters and spend the extra room on panes.
+</Callout>
