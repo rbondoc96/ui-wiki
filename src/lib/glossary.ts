@@ -15,6 +15,14 @@ export type Term = {
 }
 
 export const TERMS = {
+  "card-sorting": {
+    aliases: ["card sort"],
+    definition:
+      "A research method where people group labeled cards, one per page or feature, into piles that make sense to them, then name the piles. The groups show how users expect the product to be organized, which is the raw material for top-level navigation.",
+    id: "card-sorting",
+    source: "nng-card-sorting",
+    term: "card sorting",
+  },
   hoisting: {
     aliases: ["hoisted"],
     definition:
@@ -22,6 +30,20 @@ export const TERMS = {
     id: "hoisting",
     source: "mdn-hoisting",
     term: "hoisting",
+  },
+  "information-architecture": {
+    aliases: ["IA"],
+    definition:
+      "How a product's content and features are grouped, labeled, and connected. Navigation is the visible surface of it: the chrome can only show the structure the information architecture defines.",
+    id: "information-architecture",
+    term: "information architecture",
+  },
+  "pogo-sticking": {
+    aliases: ["pogo-stick"],
+    definition:
+      "Jumping into a page and straight back out, repeatedly, while hunting for the right one. In navigation data it shows up as a visit followed by a back navigation within seconds, a sign that labels or placement don't tell people what's behind them.",
+    id: "pogo-sticking",
+    term: "pogo-sticking",
   },
   "referential-stability": {
     aliases: ["stable reference", "stable identity"],
@@ -62,6 +84,14 @@ export const TERMS = {
     id: "temporal-dead-zone",
     source: "mdn-hoisting",
     term: "temporal dead zone",
+  },
+  "window-size-class": {
+    aliases: ["size class", "window size classes"],
+    definition:
+      "A named width range used to pick a layout: compact (under 600), medium (600 to 839), expanded (840 to 1199), large (1200 to 1599), and extra-large (1600 and up). Defined by Android in dp; the numbers carry over to CSS pixels.",
+    id: "window-size-class",
+    source: "android-window-size-classes",
+    term: "window size class",
   },
 } as const satisfies Record<string, Term>
 

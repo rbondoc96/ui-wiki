@@ -349,6 +349,47 @@ export const SOURCES = {
     type: "post",
     url: "https://x.com/infinterenders/status/2087881946475216931",
   },
+  "android-window-size-classes": {
+    access: "public",
+    author: "Android Developers",
+    id: "android-window-size-classes",
+    title: "Use window size classes",
+    type: "docs",
+    url: "https://developer.android.com/develop/ui/compose/layouts/adaptive/window-size-classes",
+  },
+  "nng-card-sorting": {
+    access: "public",
+    author: "Samhita Tankala and Katie Sherwin",
+    id: "nng-card-sorting",
+    title:
+      "Card Sorting: Uncover Users' Mental Models for Better Information Architecture",
+    type: "article",
+    url: "https://www.nngroup.com/articles/card-sorting-definition/",
+  },
+  "wcag-reflow": {
+    access: "public",
+    author: "W3C WAI",
+    id: "wcag-reflow",
+    title: "Understanding SC 1.4.10: Reflow",
+    type: "docs",
+    url: "https://www.w3.org/WAI/WCAG22/Understanding/reflow.html",
+  },
+  "wcag-target-size-minimum": {
+    access: "public",
+    author: "W3C WAI",
+    id: "wcag-target-size-minimum",
+    title: "Understanding SC 2.5.8: Target Size (Minimum)",
+    type: "docs",
+    url: "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+  },
+  "wcag-visual-presentation": {
+    access: "public",
+    author: "W3C WAI",
+    id: "wcag-visual-presentation",
+    title: "Understanding SC 1.4.8: Visual Presentation",
+    type: "docs",
+    url: "https://www.w3.org/WAI/WCAG22/Understanding/visual-presentation.html",
+  },
 } as const satisfies Record<string, Source>
 
 export function getSource(id: string): Source | undefined {
