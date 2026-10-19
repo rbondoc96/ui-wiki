@@ -390,6 +390,32 @@ export const SOURCES = {
     type: "docs",
     url: "https://www.w3.org/WAI/WCAG22/Understanding/visual-presentation.html",
   },
+  "android-layout-nav-patterns": {
+    access: "public",
+    author: "Android Developers",
+    id: "android-layout-nav-patterns",
+    title: "Layout and navigation patterns",
+    type: "docs",
+    url: "https://developer.android.com/design/ui/mobile/guides/layout-and-content/layout-and-nav-patterns",
+  },
+  "macworld-safari-single-tab": {
+    access: "public",
+    author: "Macworld",
+    id: "macworld-safari-single-tab",
+    title:
+      "Apple rolls back the biggest iOS 15 Safari change with a new Single Tab option",
+    type: "article",
+    url: "https://www.macworld.com/article/353448/apple-rolls-back-the-biggest-ios-15-safari-change-with-a-new-single-tab-option.html",
+  },
+  "nng-hamburger-menus": {
+    access: "public",
+    author: "Kara Pernice and Raluca Budiu",
+    id: "nng-hamburger-menus",
+    publishedAt: "2016-06-26",
+    title: "Hamburger Menus and Hidden Navigation Hurt UX Metrics",
+    type: "article",
+    url: "https://www.nngroup.com/articles/hamburger-menus/",
+  },
 } as const satisfies Record<string, Source>
 
 export function getSource(id: string): Source | undefined {

@@ -81,6 +81,70 @@ Real apps mix these by scale rather than choosing one forever.
 - **Tabs + stack.** Bottom tabs for top-level sections, a push/stack navigator
   inside each tab for depth. The standard mobile shape.
 
+## Bottom bar or hamburger menu
+
+On a phone, top-level navigation usually lands in one of two places: a bar of
+visible tabs along the bottom, or a hamburger menu, the ☰ button that opens a
+list. The trade is **visibility against capacity**. The ☰ icon itself is widely
+recognized now; the cost is that everything behind it stays out of sight.
+
+<SourceTrail refs={[{ id: "nng-hamburger-menus", note: "179 participants on 6 live sites: hidden navigation cut content discoverability by more than 20%; tasks were 15% slower on mobile (vs. combo) and at least 39% slower on desktop. Recommends visible links on mobile with 4 or fewer top-level items.", role: "supports" }]}>
+
+**Hidden navigation gets used less.** In a 2016 Nielsen Norman Group study of
+179 people on six live sites, hiding the navigation behind a menu cut how often
+people found content by more than 20%. Tasks took 15% longer on mobile and at
+least 39% longer on desktop. Their advice for phones: with four or fewer
+top-level links, show them; with more, hide some, and back the menu up with
+links in the page itself.
+
+</SourceTrail>
+
+| Lean toward       | When                                                                     |
+| ----------------- | ------------------------------------------------------------------------ |
+| **Bottom bar**    | Three to five destinations that people switch between often, in an app or app-like web app |
+| **☰ menu**        | More than five destinations that can't be cut, or short visits that arrive from search and links |
+| **Both**          | A few destinations used constantly, plus a long tail used rarely         |
+
+Content and marketing sites lean toward ☰ because visitors read a page or two
+and leave; moving between sections is the exception. Daily-use apps lean
+toward the bar because switching sections is the whole job.
+
+### Mixing the two
+
+- **Tabs plus a Menu tab.** Four frequent destinations as tabs, and a fifth
+  "Menu" tab for account, settings, and help. That's different from the "More"
+  tab warned about above: a Menu tab holds the secondary items, while a More
+  tab hides primary destinations that didn't fit.
+- **A few links next to the ☰.** A website keeps its one or two most important
+  links visible, "Pricing" and "Sign in" say, and puts the rest in the menu.
+- **Show what fits.** A top strip shows as many destinations as the width
+  allows and moves the rest into a "More" menu, so a wider phone or a tablet
+  shows more without a separate design.
+
+### Platform notes
+
+<SourceTrail refs={[{ id: "android-layout-nav-patterns", note: "The navigation bar holds three to five destinations; a drawer can hold more but isn't as ideal because users must reach for the top bar on compact sizes. The bar becomes a navigation rail on large screens.", role: "supports" }]}>
+
+**Android** recommends a navigation bar for three to five destinations. A
+navigation drawer can hold more, but Android's own guidance calls it less ideal
+on phones because opening it means reaching for the top of the screen. On
+larger screens the bar becomes a rail. **iOS** apps use a tab bar for top-level
+sections.
+
+</SourceTrail>
+
+<SourceTrail refs={[{ id: "macworld-safari-single-tab", note: "iOS 15 Safari defaults to a bottom Tab Bar layout; Settings > Safari > Tabs offers Single Tab to move the address bar back to the top.", role: "supports" }]}>
+
+**Mobile websites** have a problem native apps don't. Since iOS 15, Safari on
+iPhone puts its address bar and toolbar at the bottom by default (people can
+switch back to the top in Settings). A fixed bottom bar on a website sits
+directly above the browser's own, and shifts as the browser's toolbar shrinks
+and grows on scroll. If a website ships one anyway, pad it with
+`env(safe-area-inset-bottom)`, size full-height layouts with `dvh` instead of
+`vh` so they follow the toolbar, and test in Safari with its default layout.
+
+</SourceTrail>
+
 ## Web vs. native expectations
 
 The platform sets the default, and fighting it costs familiarity.
@@ -104,5 +168,6 @@ The platform sets the default, and fighting it costs familiarity.
 <Callout variant="tip" title="This decision, in one line">
   Count the top-level destinations and check whether they nest: 3–5 and flat
   wants tabs, many or nested wants a sidebar, few and shallow wants a top nav, and
-  the platform breaks any tie.
+  the platform breaks any tie. On a phone, keep frequent destinations visible in
+  a bottom bar and save the ☰ menu for long tails and short visits.
 </Callout>
